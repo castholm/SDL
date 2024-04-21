@@ -2,11 +2,18 @@
     .name = "SDL",
     .version = "3.1.1",
     .minimum_zig_version = "0.12.0",
+    .dependencies = .{
+        .@"SDL-cross-deps" = .{
+            .url = "https://github.com/castholm/SDL-cross-deps/archive/63768e35832d90ad0d8f0804588b12fca1775aeb.tar.gz",
+            .hash = "12205900b99e19a8fa469efbf7c1116b63d2b2d635e446ea3ca2a811a45cbf693bb2",
+        },
+    },
     .paths = .{
         "include/",
         "src/",
-        "LICENSE.txt",
         "build.zig",
         "build.zig.zon",
+        "LICENSE.txt",
+        "README-SDL.txt",
     },
 }
