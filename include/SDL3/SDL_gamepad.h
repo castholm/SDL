@@ -55,11 +55,13 @@ extern "C" {
 
 /**
  * The structure used to identify an SDL gamepad
+ *
+ * \since This struct is available since SDL 3.0.0.
  */
 struct SDL_Gamepad;
 typedef struct SDL_Gamepad SDL_Gamepad;
 
-typedef enum
+typedef enum SDL_GamepadType
 {
     SDL_GAMEPAD_TYPE_UNKNOWN = 0,
     SDL_GAMEPAD_TYPE_STANDARD,
@@ -76,26 +78,29 @@ typedef enum
 } SDL_GamepadType;
 
 /**
- *  The list of buttons available on a gamepad
+ * The list of buttons available on a gamepad
  *
- *  For controllers that use a diamond pattern for the face buttons,
- *  the south/east/west/north buttons below correspond to the locations
- *  in the diamond pattern. For Xbox controllers, this would be A/B/X/Y,
- *  for Nintendo Switch controllers, this would be B/A/Y/X, for
- *  PlayStation controllers this would be Cross/Circle/Square/Triangle.
+ * For controllers that use a diamond pattern for the face buttons, the
+ * south/east/west/north buttons below correspond to the locations in the
+ * diamond pattern. For Xbox controllers, this would be A/B/X/Y, for Nintendo
+ * Switch controllers, this would be B/A/Y/X, for PlayStation controllers this
+ * would be Cross/Circle/Square/Triangle.
  *
- *  For controllers that don't use a diamond pattern for the face buttons,
- *  the south/east/west/north buttons indicate the buttons labeled A, B,
- *  C, D, or 1, 2, 3, 4, or for controllers that aren't labeled, they are
- *  the primary, secondary, etc. buttons.
+ * For controllers that don't use a diamond pattern for the face buttons, the
+ * south/east/west/north buttons indicate the buttons labeled A, B, C, D, or
+ * 1, 2, 3, 4, or for controllers that aren't labeled, they are the primary,
+ * secondary, etc. buttons.
  *
- *  The activate action is often the south button and the cancel action
- *  is often the east button, but in some regions this is reversed, so
- *  your game should allow remapping actions based on user preferences.
+ * The activate action is often the south button and the cancel action is
+ * often the east button, but in some regions this is reversed, so your game
+ * should allow remapping actions based on user preferences.
  *
- *  You can query the labels for the face buttons using SDL_GetGamepadButtonLabel()
+ * You can query the labels for the face buttons using
+ * SDL_GetGamepadButtonLabel()
+ *
+ * \since This enum is available since SDL 3.0.0.
  */
-typedef enum
+typedef enum SDL_GamepadButton
 {
     SDL_GAMEPAD_BUTTON_INVALID = -1,
     SDL_GAMEPAD_BUTTON_SOUTH,           /* Bottom face button (e.g. Xbox A button) */
@@ -128,13 +133,17 @@ typedef enum
 } SDL_GamepadButton;
 
 /**
- *  The set of gamepad button labels
+ * The set of gamepad button labels
  *
- *  This isn't a complete set, just the face buttons to make it easy to show button prompts.
+ * This isn't a complete set, just the face buttons to make it easy to show
+ * button prompts.
  *
- *  For a complete set, you should look at the button and gamepad type and have a set of symbols that work well with your art style.
+ * For a complete set, you should look at the button and gamepad type and have
+ * a set of symbols that work well with your art style.
+ *
+ * \since This enum is available since SDL 3.0.0.
  */
-typedef enum
+typedef enum SDL_GamepadButtonLabel
 {
     SDL_GAMEPAD_BUTTON_LABEL_UNKNOWN,
     SDL_GAMEPAD_BUTTON_LABEL_A,
@@ -148,17 +157,20 @@ typedef enum
 } SDL_GamepadButtonLabel;
 
 /**
- *  The list of axes available on a gamepad
+ * The list of axes available on a gamepad
  *
- *  Thumbstick axis values range from SDL_JOYSTICK_AXIS_MIN to SDL_JOYSTICK_AXIS_MAX,
- *  and are centered within ~8000 of zero, though advanced UI will allow users to set
- *  or autodetect the dead zone, which varies between gamepads.
+ * Thumbstick axis values range from SDL_JOYSTICK_AXIS_MIN to
+ * SDL_JOYSTICK_AXIS_MAX, and are centered within ~8000 of zero, though
+ * advanced UI will allow users to set or autodetect the dead zone, which
+ * varies between gamepads.
  *
- *  Trigger axis values range from 0 (released) to SDL_JOYSTICK_AXIS_MAX
- *  (fully pressed) when reported by SDL_GetGamepadAxis(). Note that this is not the
- *  same range that will be reported by the lower-level SDL_GetJoystickAxis().
+ * Trigger axis values range from 0 (released) to SDL_JOYSTICK_AXIS_MAX (fully
+ * pressed) when reported by SDL_GetGamepadAxis(). Note that this is not the
+ * same range that will be reported by the lower-level SDL_GetJoystickAxis().
+ *
+ * \since This enum is available since SDL 3.0.0.
  */
-typedef enum
+typedef enum SDL_GamepadAxis
 {
     SDL_GAMEPAD_AXIS_INVALID = -1,
     SDL_GAMEPAD_AXIS_LEFTX,
@@ -170,7 +182,7 @@ typedef enum
     SDL_GAMEPAD_AXIS_MAX
 } SDL_GamepadAxis;
 
-typedef enum
+typedef enum SDL_GamepadBindingType
 {
     SDL_GAMEPAD_BINDTYPE_NONE = 0,
     SDL_GAMEPAD_BINDTYPE_BUTTON,
@@ -886,7 +898,7 @@ extern DECLSPEC SDL_PowerState SDLCALL SDL_GetGamepadPowerInfo(SDL_Gamepad *game
 extern DECLSPEC SDL_bool SDLCALL SDL_GamepadConnected(SDL_Gamepad *gamepad);
 
 /**
- * Get the underlying joystick from a gamepad
+ * Get the underlying joystick from a gamepad.
  *
  * This function will give you a SDL_Joystick object, which allows you to use
  * the SDL_Joystick functions with a SDL_Gamepad object. This would be useful
@@ -935,7 +947,7 @@ extern DECLSPEC void SDLCALL SDL_SetGamepadEventsEnabled(SDL_bool enabled);
 extern DECLSPEC SDL_bool SDLCALL SDL_GamepadEventsEnabled(void);
 
 /**
- * Get the SDL joystick layer bindings for a gamepad
+ * Get the SDL joystick layer bindings for a gamepad.
  *
  * \param gamepad a gamepad
  * \param count a pointer filled in with the number of bindings returned
@@ -1350,7 +1362,7 @@ extern DECLSPEC int SDLCALL SDL_RumbleGamepadTriggers(SDL_Gamepad *gamepad, Uint
 extern DECLSPEC int SDLCALL SDL_SetGamepadLED(SDL_Gamepad *gamepad, Uint8 red, Uint8 green, Uint8 blue);
 
 /**
- * Send a gamepad specific effect packet
+ * Send a gamepad specific effect packet.
  *
  * \param gamepad The gamepad to affect
  * \param data The data to send to the gamepad

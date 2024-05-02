@@ -29,6 +29,7 @@
  */
 
 #include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_error.h>
 
 #include <SDL3/SDL_begin_code.h>
 /* Set up for C function definitions, even when using C++ */
@@ -37,9 +38,13 @@ extern "C" {
 #endif
 
 /**
- *  The basic state for the system's power supply.
+ * The basic state for the system's power supply.
+ *
+ * These are results returned by SDL_GetPowerInfo().
+ *
+ * \since This enum is available since SDL 3.0.0
  */
-typedef enum
+typedef enum SDL_PowerState
 {
     SDL_POWERSTATE_ERROR = -1,   /**< error determining power status */
     SDL_POWERSTATE_UNKNOWN,      /**< cannot determine power status */

@@ -22,6 +22,7 @@
 #ifndef SDL_dialog_h_
 #define SDL_dialog_h_
 
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_video.h>
 
 #include <SDL3/SDL_begin_code.h>
@@ -33,17 +34,22 @@ extern "C" {
 /**
  * An entry for filters for file dialogs.
  *
- * `name` is a user-readable label for the filter (for example, "Office document").
+ * `name` is a user-readable label for the filter (for example, "Office
+ * document").
  *
  * `pattern` is a semicolon-separated list of file extensions (for example,
- * "doc;docx").
+ * "doc;docx"). File extensions may only contain alphanumeric characters,
+ * hyphens, underscores and periods. Alternatively, the whole string can be a
+ * single asterisk ("*"), which serves as an "All files" filter.
+ *
+ * \since This struct is available since SDL 3.0.0.
  *
  * \sa SDL_DialogFileCallback
  * \sa SDL_ShowOpenFileDialog
  * \sa SDL_ShowSaveFileDialog
  * \sa SDL_ShowOpenFolderDialog
  */
-typedef struct
+typedef struct SDL_DialogFileFilter
 {
     const char *name;
     const char *pattern;
@@ -54,12 +60,11 @@ typedef struct
  *
  * The specific usage is described in each function.
  *
- * If filelist is...
- * - `NULL`, an error occured. Details can be obtained with SDL_GetError().
- * - A pointer to `NULL`, the user either didn't choose any file or canceled
- *   the dialog.
- * - A pointer to non-`NULL`, the user chose one or more files. The argument is
- *   a null-terminated list of pointers to C strings, each containing a path.
+ * If filelist is... - `NULL`, an error occured. Details can be obtained with
+ * SDL_GetError(). - A pointer to `NULL`, the user either didn't choose any
+ * file or canceled the dialog. - A pointer to non-`NULL`, the user chose one
+ * or more files. The argument is a null-terminated list of pointers to C
+ * strings, each containing a path.
  *
  * The filelist argument does not need to be freed; it will automatically be
  * freed when the callback returns.
@@ -68,6 +73,8 @@ typedef struct
  * more than the size of the list (therefore the index of the terminating NULL
  * entry) if no filter was selected, or -1 if the platform or method doesn't
  * support fetching the selected filter or if an error occured.
+ *
+ * \since This datatype is available since SDL 3.0.0.
  *
  * \sa SDL_DialogFileFilter
  * \sa SDL_ShowOpenFileDialog

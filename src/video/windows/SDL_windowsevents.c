@@ -152,7 +152,7 @@ static Uint64 WIN_GetEventTimestamp()
     return timestamp;
 }
 
-static SDL_Scancode WindowsScanCodeToSDLScanCode(LPARAM lParam, WPARAM wParam)
+static SDL_Scancode WindowsScanCodeToSDLScanCode(LPARAM lParam, WPARAM wParam, SDL_bool *virtual_key)
 {
     SDL_Scancode code;
     Uint8 index;
@@ -162,6 +162,8 @@ static SDL_Scancode WindowsScanCodeToSDLScanCode(LPARAM lParam, WPARAM wParam)
     /* On-Screen Keyboard can send wrong scan codes with high-order bit set (key break code).
      * Strip high-order bit. */
     scanCode &= ~0x80;
+
+    *virtual_key = (scanCode == 0);
 
     if (scanCode != 0) {
         if ((keyFlags & KF_EXTENDED) == KF_EXTENDED) {
@@ -621,6 +623,18 @@ static void WIN_HandleRawMouseInput(Uint64 timestamp, SDL_VideoData *data, HANDL
                         button = SDL_BUTTON_LEFT;
                     }
                 }
+
+                if (windowdata->focus_click_pending & SDL_BUTTON(button)) {
+                    /* Ignore the button click for activation */
+                    if (!state) {
+                        windowdata->focus_click_pending &= ~SDL_BUTTON(button);
+                        WIN_UpdateClipCursor(window);
+                    }
+                    if (WIN_ShouldIgnoreFocusClick(windowdata)) {
+                        continue;
+                    }
+                }
+
                 SDL_SendMouseButton(timestamp, window, mouseID, state, button);
             }
         }
@@ -1141,7 +1155,8 @@ LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
     {
-        SDL_Scancode code = WindowsScanCodeToSDLScanCode(lParam, wParam);
+        SDL_bool virtual_key = SDL_FALSE;
+        SDL_Scancode code = WindowsScanCodeToSDLScanCode(lParam, wParam, &virtual_key);
         const Uint8 *keyboardState = SDL_GetKeyboardState(NULL);
 
         /* Detect relevant keyboard shortcuts */
@@ -1152,7 +1167,7 @@ LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             }
         }
 
-        if (!data->videodata->raw_keyboard_enabled && code != SDL_SCANCODE_UNKNOWN) {
+        if ((virtual_key || !data->videodata->raw_keyboard_enabled) && code != SDL_SCANCODE_UNKNOWN) {
             SDL_SendKeyboardKey(WIN_GetEventTimestamp(), SDL_GLOBAL_KEYBOARD_ID, SDL_PRESSED, code);
         }
     }
@@ -1163,10 +1178,11 @@ LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     case WM_SYSKEYUP:
     case WM_KEYUP:
     {
-        SDL_Scancode code = WindowsScanCodeToSDLScanCode(lParam, wParam);
+        SDL_bool virtual_key = SDL_FALSE;
+        SDL_Scancode code = WindowsScanCodeToSDLScanCode(lParam, wParam, &virtual_key);
         const Uint8 *keyboardState = SDL_GetKeyboardState(NULL);
 
-        if (!data->videodata->raw_keyboard_enabled && code != SDL_SCANCODE_UNKNOWN) {
+        if ((virtual_key || !data->videodata->raw_keyboard_enabled) && code != SDL_SCANCODE_UNKNOWN) {
             if (code == SDL_SCANCODE_PRINTSCREEN &&
                 keyboardState[code] == SDL_RELEASED) {
                 SDL_SendKeyboardKey(WIN_GetEventTimestamp(), SDL_GLOBAL_KEYBOARD_ID, SDL_PRESSED, code);
@@ -2098,13 +2114,26 @@ static void WIN_CleanRegisterApp(WNDCLASSEX wcex)
     SDL_Appname = NULL;
 }
 
+static BOOL CALLBACK WIN_ResourceNameCallback(HMODULE hModule, LPCTSTR lpType, LPTSTR lpName, LONG_PTR lParam)
+{
+    WNDCLASSEX *wcex = (WNDCLASSEX *)lParam;
+
+    (void)lpType; /* We already know that the resource type is RT_GROUP_ICON. */
+
+    /* We leave hIconSm as NULL as it will allow Windows to automatically
+       choose the appropriate small icon size to suit the current DPI. */
+    wcex->hIcon = LoadIcon(hModule, lpName);
+
+    /* Do not bother enumerating any more. */
+    return FALSE;
+}
+
 /* Register the class for this application */
 int SDL_RegisterApp(const char *name, Uint32 style, void *hInst)
 {
     WNDCLASSEX wcex;
 #if !defined(SDL_PLATFORM_XBOXONE) && !defined(SDL_PLATFORM_XBOXSERIES)
     const char *hint;
-    TCHAR path[MAX_PATH];
 #endif
 
     /* Only do this once... */
@@ -2147,9 +2176,8 @@ int SDL_RegisterApp(const char *name, Uint32 style, void *hInst)
             wcex.hIconSm = LoadIcon(SDL_Instance, MAKEINTRESOURCE(SDL_atoi(hint)));
         }
     } else {
-        /* Use the first icon as a default icon, like in the Explorer */
-        GetModuleFileName(SDL_Instance, path, MAX_PATH);
-        ExtractIconEx(path, 0, &wcex.hIcon, &wcex.hIconSm, 1);
+        /* Use the first icon as a default icon, like in the Explorer. */
+        EnumResourceNames(SDL_Instance, RT_GROUP_ICON, WIN_ResourceNameCallback, (LONG_PTR)&wcex);
     }
 #endif /*!defined(SDL_PLATFORM_XBOXONE) && !defined(SDL_PLATFORM_XBOXSERIES)*/
 

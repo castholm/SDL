@@ -76,15 +76,19 @@ typedef struct SDL_Joystick SDL_Joystick;
 typedef SDL_GUID SDL_JoystickGUID;
 
 /**
- * This is a unique ID for a joystick for the time it is connected to the system,
- * and is never reused for the lifetime of the application. If the joystick is
- * disconnected and reconnected, it will get a new ID.
+ * This is a unique ID for a joystick for the time it is connected to the
+ * system, and is never reused for the lifetime of the application.
  *
- * The ID value starts at 1 and increments from there. The value 0 is an invalid ID.
+ * If the joystick is disconnected and reconnected, it will get a new ID.
+ *
+ * The ID value starts at 1 and increments from there. The value 0 is an
+ * invalid ID.
+ *
+ * \since This datatype is available since SDL 3.0.0.
  */
 typedef Uint32 SDL_JoystickID;
 
-typedef enum
+typedef enum SDL_JoystickType
 {
     SDL_JOYSTICK_TYPE_UNKNOWN,
     SDL_JOYSTICK_TYPE_GAMEPAD,
@@ -98,12 +102,12 @@ typedef enum
     SDL_JOYSTICK_TYPE_THROTTLE
 } SDL_JoystickType;
 
-typedef enum
+typedef enum SDL_JoystickConnectionState
 {
     SDL_JOYSTICK_CONNECTION_INVALID = -1,
     SDL_JOYSTICK_CONNECTION_UNKNOWN,
     SDL_JOYSTICK_CONNECTION_WIRED,
-    SDL_JOYSTICK_CONNECTION_WIRELESS,
+    SDL_JOYSTICK_CONNECTION_WIRELESS
 } SDL_JoystickConnectionState;
 
 #define SDL_JOYSTICK_AXIS_MAX   32767
@@ -118,7 +122,7 @@ typedef enum
 /* Function prototypes */
 
 /**
- * Locking for atomic access to the joystick API
+ * Locking for atomic access to the joystick API.
  *
  * The SDL joystick functions are thread-safe, however you can lock the
  * joysticks while processing to guarantee that the joystick list won't change
@@ -129,7 +133,7 @@ typedef enum
 extern DECLSPEC void SDLCALL SDL_LockJoysticks(void) SDL_ACQUIRE(SDL_joystick_lock);
 
 /**
- * Unlocking for atomic access to the joystick API
+ * Unlocking for atomic access to the joystick API.
  *
  * \since This function is available since SDL 3.0.0.
  */
@@ -356,14 +360,14 @@ extern DECLSPEC SDL_JoystickID SDLCALL SDL_AttachVirtualJoystick(SDL_JoystickTyp
 /**
  * The structure that defines an extended virtual joystick description
  *
- * The caller must zero the structure and then initialize the version with `SDL_VIRTUAL_JOYSTICK_DESC_VERSION` before passing it to SDL_AttachVirtualJoystickEx()
- *  All other elements of this structure are optional and can be left 0.
+ * All elements of this structure are optional and can be left 0.
+ *
+ * \since This struct is available since SDL 3.0.0.
  *
  * \sa SDL_AttachVirtualJoystickEx
  */
 typedef struct SDL_VirtualJoystickDesc
 {
-    Uint16 version;     /**< `SDL_VIRTUAL_JOYSTICK_DESC_VERSION` */
     Uint16 type;        /**< `SDL_JoystickType` */
     Uint16 naxes;       /**< the number of axes on this joystick */
     Uint16 nbuttons;    /**< the number of buttons on this joystick */
@@ -384,13 +388,7 @@ typedef struct SDL_VirtualJoystickDesc
     int (SDLCALL *RumbleTriggers)(void *userdata, Uint16 left_rumble, Uint16 right_rumble); /**< Implements SDL_RumbleJoystickTriggers() */
     int (SDLCALL *SetLED)(void *userdata, Uint8 red, Uint8 green, Uint8 blue); /**< Implements SDL_SetJoystickLED() */
     int (SDLCALL *SendEffect)(void *userdata, const void *data, int size); /**< Implements SDL_SendJoystickEffect() */
-
 } SDL_VirtualJoystickDesc;
-
-/**
- * The current version of the SDL_VirtualJoystickDesc structure
- */
-#define SDL_VIRTUAL_JOYSTICK_DESC_VERSION   1
 
 /**
  * Attach a new virtual joystick with extended properties.
@@ -714,7 +712,7 @@ extern DECLSPEC int SDLCALL SDL_GetJoystickGUIDString(SDL_JoystickGUID guid, cha
 extern DECLSPEC SDL_JoystickGUID SDLCALL SDL_GetJoystickGUIDFromString(const char *pchGUID);
 
 /**
- * Get the device information encoded in a SDL_JoystickGUID structure
+ * Get the device information encoded in a SDL_JoystickGUID structure.
  *
  * \param guid the SDL_JoystickGUID you wish to get info about
  * \param vendor A pointer filled in with the device VID, or 0 if not
@@ -1007,7 +1005,7 @@ extern DECLSPEC Uint8 SDLCALL SDL_GetJoystickButton(SDL_Joystick *joystick, int 
 extern DECLSPEC int SDLCALL SDL_RumbleJoystick(SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble, Uint32 duration_ms);
 
 /**
- * Start a rumble effect in the joystick's triggers
+ * Start a rumble effect in the joystick's triggers.
  *
  * Each call to this function cancels any previous trigger rumble effect, and
  * calling it with 0 intensity stops any rumbling.
@@ -1056,7 +1054,7 @@ extern DECLSPEC int SDLCALL SDL_RumbleJoystickTriggers(SDL_Joystick *joystick, U
 extern DECLSPEC int SDLCALL SDL_SetJoystickLED(SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue);
 
 /**
- * Send a joystick specific effect packet
+ * Send a joystick specific effect packet.
  *
  * \param joystick The joystick to affect
  * \param data The data to send to the joystick

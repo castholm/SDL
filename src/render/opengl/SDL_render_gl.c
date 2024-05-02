@@ -1583,7 +1583,6 @@ static void GL_DestroyRenderer(SDL_Renderer *renderer)
         }
         SDL_free(data);
     }
-    SDL_free(renderer);
 }
 
 static int GL_SetVSync(SDL_Renderer *renderer, const int vsync)
@@ -1612,36 +1611,9 @@ static int GL_SetVSync(SDL_Renderer *renderer, const int vsync)
     return retval;
 }
 
-static SDL_bool GL_IsProbablyAccelerated(const GL_RenderData *data)
+static int GL_CreateRenderer(SDL_Renderer *renderer, SDL_Window *window, SDL_PropertiesID create_props)
 {
-    /*const char *vendor = (const char *) data->glGetString(GL_VENDOR);*/
-    const char *renderer = (const char *)data->glGetString(GL_RENDERER);
-
-#if defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_WINGDK)
-    if (SDL_strcmp(renderer, "GDI Generic") == 0) {
-        return SDL_FALSE; /* Microsoft's fallback software renderer. Fix your system! */
-    }
-#endif
-
-#ifdef SDL_PLATFORM_APPLE
-    if (SDL_strcmp(renderer, "Apple Software Renderer") == 0) {
-        return SDL_FALSE; /* (a probably very old) Apple software-based OpenGL. */
-    }
-#endif
-
-    if (SDL_strcmp(renderer, "Software Rasterizer") == 0) {
-        return SDL_FALSE; /* (a probably very old) Software Mesa, or some other generic thing. */
-    }
-
-    /* !!! FIXME: swrast? llvmpipe? softpipe? */
-
-    return SDL_TRUE;
-}
-
-static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, SDL_PropertiesID create_props)
-{
-    SDL_Renderer *renderer;
-    GL_RenderData *data;
+    GL_RenderData *data = NULL;
     GLint value;
     SDL_WindowFlags window_flags;
     int profile_mask = 0, major = 0, minor = 0;
@@ -1670,22 +1642,15 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, SDL_PropertiesID crea
     }
 #endif
 
-    renderer = (SDL_Renderer *)SDL_calloc(1, sizeof(*renderer));
-    if (!renderer) {
-        goto error;
-    }
-
     SDL_SetupRendererColorspace(renderer, create_props);
 
     if (renderer->output_colorspace != SDL_COLORSPACE_SRGB) {
         SDL_SetError("Unsupported output colorspace");
-        SDL_free(renderer);
         goto error;
     }
 
     data = (GL_RenderData *)SDL_calloc(1, sizeof(*data));
     if (!data) {
-        SDL_free(renderer);
         goto error;
     }
 
@@ -1721,26 +1686,16 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, SDL_PropertiesID crea
 
     data->context = SDL_GL_CreateContext(window);
     if (!data->context) {
-        SDL_free(renderer);
-        SDL_free(data);
         goto error;
     }
     if (SDL_GL_MakeCurrent(window, data->context) < 0) {
         SDL_GL_DeleteContext(data->context);
-        SDL_free(renderer);
-        SDL_free(data);
         goto error;
     }
 
     if (GL_LoadFunctions(data) < 0) {
         SDL_GL_DeleteContext(data->context);
-        SDL_free(renderer);
-        SDL_free(data);
         goto error;
-    }
-
-    if (GL_IsProbablyAccelerated(data)) {
-        renderer->info.flags |= SDL_RENDERER_ACCELERATED;
     }
 
 #ifdef SDL_PLATFORM_MACOS
@@ -1874,8 +1829,6 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, SDL_PropertiesID crea
     } else {
         SDL_SetError("Can't create render targets, GL_EXT_framebuffer_object not available");
         SDL_GL_DeleteContext(data->context);
-        SDL_free(renderer);
-        SDL_free(data);
         goto error;
     }
 
@@ -1900,9 +1853,10 @@ static SDL_Renderer *GL_CreateRenderer(SDL_Window *window, SDL_PropertiesID crea
     data->drawstate.clear_color.b = 1.0f;
     data->drawstate.clear_color.a = 1.0f;
 
-    return renderer;
+    return 0;
 
 error:
+    SDL_free(data);
     if (changed_window) {
         /* Uh oh, better try to put it back... */
         char *error = SDL_strdup(SDL_GetError());
@@ -1913,13 +1867,13 @@ error:
         SDL_SetError("%s", error);
         SDL_free(error);
     }
-    return NULL;
+    return -1;
 }
 
 SDL_RenderDriver GL_RenderDriver = {
     GL_CreateRenderer,
     { "opengl",
-      (SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
+      SDL_RENDERER_PRESENTVSYNC,
       4,
       { SDL_PIXELFORMAT_ARGB8888,
         SDL_PIXELFORMAT_ABGR8888,

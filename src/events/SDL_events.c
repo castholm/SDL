@@ -839,7 +839,7 @@ static int SDL_SendWakeupEvent(void)
 }
 
 /* Lock the event queue, take a peep at it, and unlock it */
-static int SDL_PeepEventsInternal(SDL_Event *events, int numevents, SDL_eventaction action,
+static int SDL_PeepEventsInternal(SDL_Event *events, int numevents, SDL_EventAction action,
                                   Uint32 minType, Uint32 maxType, SDL_bool include_sentinel)
 {
     int i, used, sentinels_expected = 0;
@@ -904,7 +904,7 @@ static int SDL_PeepEventsInternal(SDL_Event *events, int numevents, SDL_eventact
 
     return used;
 }
-int SDL_PeepEvents(SDL_Event *events, int numevents, SDL_eventaction action,
+int SDL_PeepEvents(SDL_Event *events, int numevents, SDL_EventAction action,
                    Uint32 minType, Uint32 maxType)
 {
     return SDL_PeepEventsInternal(events, numevents, action, minType, maxType, SDL_FALSE);
@@ -1394,6 +1394,8 @@ void SDL_SetEventEnabled(Uint32 type, SDL_bool enabled)
     Uint8 hi = ((type >> 8) & 0xff);
     Uint8 lo = (type & 0xff);
 
+    enabled = !!enabled;  // make sure this is definitely either SDL_TRUE or SDL_FALSE.
+
     if (SDL_disabled_events[hi] &&
         (SDL_disabled_events[hi]->bits[lo / 32] & (1 << (lo & 31)))) {
         current_state = SDL_FALSE;
@@ -1403,14 +1405,8 @@ void SDL_SetEventEnabled(Uint32 type, SDL_bool enabled)
 
     if (enabled != current_state) {
         if (enabled) {
-#ifdef _MSC_VER /* Visual Studio analyzer can't tell that SDL_disabled_events[hi] isn't NULL if enabled is true */
-#pragma warning(push)
-#pragma warning(disable : 6011)
-#endif
+            SDL_assert(SDL_disabled_events[hi] != NULL);
             SDL_disabled_events[hi]->bits[lo / 32] &= ~(1 << (lo & 31));
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
             /* Gamepad events depend on joystick events */
             switch (type) {

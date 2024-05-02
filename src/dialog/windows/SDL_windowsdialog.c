@@ -19,18 +19,21 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 #include "SDL_internal.h"
+#include "../SDL_dialog_utils.h"
 
 #include <windows.h>
 #include <shlobj.h>
 #include "../../core/windows/SDL_windows.h"
 #include "../../thread/SDL_systhread.h"
 
+/* If this number is too small, selecting too many files will give an error */
+#define SELECTLIST_SIZE 65536
+
 typedef struct
 {
     int is_save;
     const SDL_DialogFileFilter *filters;
     const char* default_file;
-    const char* default_folder;
     SDL_Window* parent;
     DWORD flags;
     SDL_DialogFileCallback callback;
@@ -67,7 +70,6 @@ void windows_ShowFileDialog(void *ptr)
     int is_save = args->is_save;
     const SDL_DialogFileFilter *filters = args->filters;
     const char* default_file = args->default_file;
-    const char* default_folder = args->default_folder;
     SDL_Window* parent = args->parent;
     DWORD flags = args->flags;
     SDL_DialogFileCallback callback = args->callback;
@@ -108,82 +110,94 @@ void windows_ShowFileDialog(void *ptr)
         window = (HWND) SDL_GetProperty(SDL_GetWindowProperties(parent), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
     }
 
-    wchar_t filebuffer[MAX_PATH] = L"";
-    wchar_t initfolder[MAX_PATH] = L"";
+    wchar_t *filebuffer; /* lpstrFile */
+    wchar_t initfolder[MAX_PATH] = L""; /* lpstrInitialDir */
+
+    /* If SELECTLIST_SIZE is too large, putting filebuffer on the stack might
+       cause an overflow */
+    filebuffer = (wchar_t *) SDL_malloc(SELECTLIST_SIZE * sizeof(wchar_t));
 
     /* Necessary for the return code below */
-    SDL_memset(filebuffer, 0, MAX_PATH * sizeof(wchar_t));
+    SDL_memset(filebuffer, 0, SELECTLIST_SIZE * sizeof(wchar_t));
 
     if (default_file) {
-        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, default_file, -1, filebuffer, MAX_PATH);
-    }
+        /* On Windows 10, 11 and possibly others, lpstrFile can be initialized
+           with a path and the dialog will start at that location, but *only if
+           the path contains a filename*. If it ends with a folder (directory
+           separator), it fails with 0x3002 (12290) FNERR_INVALIDFILENAME. For
+           that specific case, lpstrInitialDir must be used instead, but just
+           for that case, because lpstrInitialDir doesn't support file names.
 
-    if (default_folder) {
-        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, default_folder, -1, filebuffer, MAX_PATH);
-    }
+           On top of that, lpstrInitialDir hides a special algorithm that
+           decides which folder to actually use as starting point, which may or
+           may not be the one provided, or some other unrelated folder. Also,
+           the algorithm changes between platforms. Assuming the documentation
+           is correct, the algorithm is there under 'lpstrInitialDir':
 
-    size_t len = 0;
-    for (const SDL_DialogFileFilter *filter = filters; filter && filter->name && filter->pattern; filter++) {
-        const char *pattern_ptr = filter->pattern;
-        len += SDL_strlen(filter->name) + SDL_strlen(filter->pattern) + 4;
-        while (*pattern_ptr) {
-            if (*pattern_ptr == ';') {
-                len += 2;
+           https://learn.microsoft.com/en-us/windows/win32/api/commdlg/ns-commdlg-openfilenamew
+
+           Finally, lpstrFile does not support forward slashes. lpstrInitialDir
+           does, though. */
+
+        char last_c = default_file[SDL_strlen(default_file) - 1];
+
+        if (last_c == '\\' || last_c == '/') {
+            MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, default_file, -1, initfolder, MAX_PATH);
+        } else {
+            MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, default_file, -1, filebuffer, MAX_PATH);
+
+            for (int i = 0; i < SELECTLIST_SIZE; i++) {
+                if (filebuffer[i] == L'/') {
+                    filebuffer[i] = L'\\';
+                }
             }
-            pattern_ptr++;
         }
     }
-    wchar_t *filterlist = SDL_malloc((len + 1) * sizeof(wchar_t));
+
+    /* '\x01' is used in place of a null byte */
+    char *filterlist = convert_filters(filters, NULL, "", "", "\x01", "",
+                                       "\x01", "\x01", "*.", ";*.", "");
 
     if (!filterlist) {
-        SDL_OutOfMemory();
         callback(userdata, NULL, -1);
+        SDL_free(filebuffer);
         return;
     }
 
-    wchar_t *filter_ptr = filterlist;
-    for (const SDL_DialogFileFilter *filter = filters; filter && filter->name && filter->pattern; filter++) {
-        size_t l = SDL_strlen(filter->name);
-        const char *pattern_ptr = filter->pattern;
+    int filter_len = (int)SDL_strlen(filterlist);
 
-        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, filter->name, -1, filter_ptr, MAX_PATH);
-        filter_ptr += l + 1;
-
-        *filter_ptr++ = L'*';
-        *filter_ptr++ = L'.';
-        while (*pattern_ptr) {
-            if (*pattern_ptr == ';') {
-                *filter_ptr++ = L';';
-                *filter_ptr++ = L'*';
-                *filter_ptr++ = L'.';
-            } else if (*pattern_ptr == '*' && (pattern_ptr[1] == '\0' || pattern_ptr[1] == ';')) {
-                *filter_ptr++ = L'*';
-            } else if (!((*pattern_ptr >= 'a' && *pattern_ptr <= 'z') || (*pattern_ptr >= 'A' && *pattern_ptr <= 'Z') || (*pattern_ptr >= '0' && *pattern_ptr <= '9') || *pattern_ptr == '.' || *pattern_ptr == '_' || *pattern_ptr == '-')) {
-                SDL_SetError("Illegal character in pattern name: %c (Only alphanumeric characters, periods, underscores and hyphens allowed)", *pattern_ptr);
-                callback(userdata, NULL, -1);
-            } else {
-                MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, pattern_ptr, 1, filter_ptr, 1);
-                filter_ptr++;
-            }
-            pattern_ptr++;
+    for (char *c = filterlist; *c; c++) {
+        if (*c == '\x01') {
+            *c = '\0';
         }
-        *filter_ptr++ = '\0';
     }
-    *filter_ptr = '\0';
 
+    int filter_wlen = MultiByteToWideChar(CP_UTF8, 0, filterlist, filter_len, NULL, 0);
+    wchar_t *filter_wchar = SDL_malloc(filter_wlen * sizeof(wchar_t));
+
+    if (!filter_wchar) {
+        SDL_OutOfMemory();
+        SDL_free(filterlist);
+        callback(userdata, NULL, -1);
+        SDL_free(filebuffer);
+        return;
+    }
+
+    MultiByteToWideChar(CP_UTF8, 0, filterlist, filter_len, filter_wchar, filter_wlen);
+
+    SDL_free(filterlist);
 
     OPENFILENAMEW dialog;
     dialog.lStructSize = sizeof(OPENFILENAME);
     dialog.hwndOwner = window;
     dialog.hInstance = 0;
-    dialog.lpstrFilter = filterlist;
+    dialog.lpstrFilter = filter_wchar;
     dialog.lpstrCustomFilter = NULL;
     dialog.nMaxCustFilter = 0;
     dialog.nFilterIndex = 0;
     dialog.lpstrFile = filebuffer;
-    dialog.nMaxFile = MAX_PATH;
-    dialog.lpstrFileTitle = *filebuffer ? filebuffer : NULL;
-    dialog.nMaxFileTitle = MAX_PATH;
+    dialog.nMaxFile = SELECTLIST_SIZE;
+    dialog.lpstrFileTitle = NULL;
     dialog.lpstrInitialDir = *initfolder ? initfolder : NULL;
     dialog.lpstrTitle = NULL;
     dialog.Flags = flags | OFN_EXPLORER | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
@@ -198,7 +212,7 @@ void windows_ShowFileDialog(void *ptr)
 
     BOOL result = pGetAnyFileName(&dialog);
 
-    SDL_free(filterlist);
+    SDL_free(filter_wchar);
 
     if (result) {
         if (!(flags & OFN_ALLOWMULTISELECT)) {
@@ -225,6 +239,7 @@ void windows_ShowFileDialog(void *ptr)
             if (!chosen_files_list) {
                 SDL_OutOfMemory();
                 callback(userdata, NULL, -1);
+                SDL_free(filebuffer);
                 return;
             }
 
@@ -234,6 +249,7 @@ void windows_ShowFileDialog(void *ptr)
                 SDL_SetError("Path too long or invalid character in path");
                 SDL_free(chosen_files_list);
                 callback(userdata, NULL, -1);
+                SDL_free(filebuffer);
                 return;
             }
 
@@ -256,6 +272,7 @@ void windows_ShowFileDialog(void *ptr)
 
                     SDL_free(chosen_files_list);
                     callback(userdata, NULL, -1);
+                    SDL_free(filebuffer);
                     return;
                 }
 
@@ -273,6 +290,7 @@ void windows_ShowFileDialog(void *ptr)
 
                     SDL_free(chosen_files_list);
                     callback(userdata, NULL, -1);
+                    SDL_free(filebuffer);
                     return;
                 }
 
@@ -289,6 +307,33 @@ void windows_ShowFileDialog(void *ptr)
 
                     SDL_free(chosen_files_list);
                     callback(userdata, NULL, -1);
+                    SDL_free(filebuffer);
+                    return;
+                }
+            }
+
+            /* If the user chose only one file, it's all just one string */
+            if (nfiles == 0) {
+                nfiles++;
+                char **new_cfl = (char **) SDL_realloc(chosen_files_list, sizeof(char*) * (nfiles + 1));
+
+                if (!new_cfl) {
+                    SDL_OutOfMemory();
+                    SDL_free(chosen_files_list);
+                    callback(userdata, NULL, -1);
+                    SDL_free(filebuffer);
+                    return;
+                }
+
+                chosen_files_list = new_cfl;
+                chosen_files_list[nfiles] = NULL;
+                chosen_files_list[nfiles - 1] = SDL_strdup(chosen_folder);
+
+                if (!chosen_files_list[nfiles - 1]) {
+                    SDL_OutOfMemory();
+                    SDL_free(chosen_files_list);
+                    callback(userdata, NULL, -1);
+                    SDL_free(filebuffer);
                     return;
                 }
             }
@@ -316,6 +361,8 @@ void windows_ShowFileDialog(void *ptr)
             callback(userdata, NULL, -1);
         }
     }
+
+    SDL_free(filebuffer);
 }
 
 int windows_file_dialog_thread(void* ptr)
@@ -401,6 +448,13 @@ void SDL_ShowOpenFileDialog(SDL_DialogFileCallback callback, void* userdata, SDL
     winArgs *args;
     SDL_Thread *thread;
 
+    if (SDL_GetHint(SDL_HINT_FILE_DIALOG_DRIVER) != NULL) {
+        SDL_Log("%s", SDL_GetHint(SDL_HINT_FILE_DIALOG_DRIVER));
+        SDL_SetError("File dialog driver unsupported");
+        callback(userdata, NULL, -1);
+        return;
+    }
+
     args = SDL_malloc(sizeof(winArgs));
     if (args == NULL) {
         SDL_OutOfMemory();
@@ -411,7 +465,6 @@ void SDL_ShowOpenFileDialog(SDL_DialogFileCallback callback, void* userdata, SDL
     args->is_save = 0;
     args->filters = filters;
     args->default_file = default_location;
-    args->default_folder = NULL;
     args->parent = window;
     args->flags = (allow_many == SDL_TRUE) ? OFN_ALLOWMULTISELECT : 0;
     args->callback = callback;
@@ -421,6 +474,7 @@ void SDL_ShowOpenFileDialog(SDL_DialogFileCallback callback, void* userdata, SDL
 
     if (thread == NULL) {
         callback(userdata, NULL, -1);
+        SDL_free(args);
         return;
     }
 
@@ -432,6 +486,12 @@ void SDL_ShowSaveFileDialog(SDL_DialogFileCallback callback, void* userdata, SDL
     winArgs *args;
     SDL_Thread *thread;
 
+    if (SDL_GetHint(SDL_HINT_FILE_DIALOG_DRIVER) != NULL) {
+        SDL_SetError("File dialog driver unsupported");
+        callback(userdata, NULL, -1);
+        return;
+    }
+
     args = SDL_malloc(sizeof(winArgs));
     if (args == NULL) {
         SDL_OutOfMemory();
@@ -442,7 +502,6 @@ void SDL_ShowSaveFileDialog(SDL_DialogFileCallback callback, void* userdata, SDL
     args->is_save = 1;
     args->filters = filters;
     args->default_file = default_location;
-    args->default_folder = NULL;
     args->parent = window;
     args->flags = 0;
     args->callback = callback;
@@ -452,6 +511,7 @@ void SDL_ShowSaveFileDialog(SDL_DialogFileCallback callback, void* userdata, SDL
 
     if (thread == NULL) {
         callback(userdata, NULL, -1);
+        SDL_free(args);
         return;
     }
 
@@ -462,6 +522,12 @@ void SDL_ShowOpenFolderDialog(SDL_DialogFileCallback callback, void* userdata, S
 {
     winFArgs *args;
     SDL_Thread *thread;
+
+    if (SDL_GetHint(SDL_HINT_FILE_DIALOG_DRIVER) != NULL) {
+        SDL_SetError("File dialog driver unsupported");
+        callback(userdata, NULL, -1);
+        return;
+    }
 
     args = SDL_malloc(sizeof(winFArgs));
     if (args == NULL) {
@@ -479,6 +545,7 @@ void SDL_ShowOpenFolderDialog(SDL_DialogFileCallback callback, void* userdata, S
 
     if (thread == NULL) {
         callback(userdata, NULL, -1);
+        SDL_free(args);
         return;
     }
 

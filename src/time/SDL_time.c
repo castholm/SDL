@@ -66,8 +66,8 @@ void SDL_InitTime()
     }
 
     /* Default to ISO 8061 date format, as it is unambiguous, and 24 hour time. */
-    SDL_DATE_FORMAT dateFormat = SDL_DATE_FORMAT_YYYYMMDD;
-    SDL_TIME_FORMAT timeFormat = SDL_TIME_FORMAT_24HR;
+    SDL_DateFormat dateFormat = SDL_DATE_FORMAT_YYYYMMDD;
+    SDL_TimeFormat timeFormat = SDL_TIME_FORMAT_24HR;
     SDL_PropertiesID props = SDL_GetGlobalProperties();
 
     SDL_GetSystemTimeLocalePreferences(&dateFormat, &timeFormat);
@@ -90,7 +90,7 @@ void SDL_QuitTime()
 int SDL_GetDaysInMonth(int year, int month)
 {
     static const int DAYS_IN_MONTH[] = {
-        30, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+        31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     };
 
     if (month < 1 || month > 12) {

@@ -39,7 +39,7 @@
 #include "xdg-shell-client-protocol.h"
 #include "keyboard-shortcuts-inhibit-unstable-v1-client-protocol.h"
 #include "text-input-unstable-v3-client-protocol.h"
-#include "tablet-unstable-v2-client-protocol.h"
+#include "tablet-v2-client-protocol.h"
 #include "primary-selection-unstable-v1-client-protocol.h"
 #include "input-timestamps-unstable-v1-client-protocol.h"
 
@@ -498,6 +498,7 @@ void Wayland_PumpEvents(SDL_VideoDevice *_this)
          */
         if (!Wayland_VideoReconnect(_this)) {
             d->display_disconnected = 1;
+            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Wayland display connection closed by server (fatal)");
 
             /* Only send a single quit message, as application shutdown might call
              * SDL_PumpEvents
@@ -2164,7 +2165,8 @@ static void data_device_handle_drop(void *data, struct wl_data_device *wl_data_d
                     char **paths = SDL_DBus_DocumentsPortalRetrieveFiles(buffer, &path_count);
                     /* If dropped files contain a directory the list is empty */
                     if (paths && path_count > 0) {
-                        for (int i = 0; i < path_count; i++) {
+                        int i;
+                        for (i = 0; i < path_count; i++) {
                             SDL_SendDropFile(data_device->dnd_window, NULL, paths[i]);
                         }
                         dbus->free_string_array(paths);

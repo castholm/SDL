@@ -116,8 +116,10 @@ extern "C" {
 #endif
 
 /**
- *  Synchronization functions which can time out return this value
- *  if they time out.
+ * Synchronization functions which can time out return this value if they time
+ * out.
+ *
+ * \since This macro is available since SDL 3.0.0.
  */
 #define SDL_MUTEX_TIMEDOUT  1
 

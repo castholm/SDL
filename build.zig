@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
         "Also install 'SDL_build_config.h' (for debugging)",
     ) orelse false;
 
-    const version: std.SemanticVersion = .{ .major = 3, .minor = 1, .patch = 1 };
+    const version: std.SemanticVersion = .{ .major = 3, .minor = 1, .patch = 2 };
     const windows = target.result.os.tag == .windows;
     const linux = !windows;
 
@@ -69,35 +69,16 @@ pub fn build(b: *std.Build) void {
     }
 
     if (windows) {
-        sdl3_mod.addCSourceFiles(.{ .files = &c_files_windows, .flags = &c_flags });
+        sdl3_mod.addCSourceFiles(.{ .files = &windows_c_files, .flags = &c_flags });
         if (linkage == .dynamic) {
             sdl3_mod.addWin32ResourceFile(.{ .file = b.path("src/core/windows/version.rc") });
         }
     }
     if (linux) {
-        sdl3_mod.addCSourceFiles(.{ .files = &c_files_linux, .flags = &c_flags });
+        sdl3_mod.addCSourceFiles(.{ .files = &linux_c_files, .flags = &c_flags });
         sdl3_mod.addCSourceFiles(.{
-            .root = cross_deps_dep.path("wayland/src"),
-            .files = &.{
-                "cursor-shape-v1-protocol.c",
-                "fractional-scale-v1-protocol.c",
-                "idle-inhibit-unstable-v1-protocol.c",
-                "input-timestamps-unstable-v1-protocol.c",
-                "kde-output-order-v1-protocol.c",
-                "keyboard-shortcuts-inhibit-unstable-v1-protocol.c",
-                "pointer-constraints-unstable-v1-protocol.c",
-                "primary-selection-unstable-v1-protocol.c",
-                "relative-pointer-unstable-v1-protocol.c",
-                "tablet-unstable-v2-protocol.c",
-                "text-input-unstable-v3-protocol.c",
-                "viewporter-protocol.c",
-                "wayland-protocol.c",
-                "xdg-activation-v1-protocol.c",
-                "xdg-decoration-unstable-v1-protocol.c",
-                "xdg-foreign-unstable-v2-protocol.c",
-                "xdg-output-unstable-v1-protocol.c",
-                "xdg-shell-protocol.c",
-            },
+            .root = cross_deps_dep.path("wayland"),
+            .files = &cross_deps.wayland_c_files,
             .flags = &c_flags,
         });
     }
@@ -134,14 +115,11 @@ pub fn build(b: *std.Build) void {
     }
 
     const install_sdl3_lib = b.addInstallArtifact(sdl3_lib, .{});
-    const install_license = b.addInstallFile(b.path("LICENSE.txt"), "LICENSE.txt");
 
     const install_sdl3 = b.step("install-SDL3", "Install SDL3");
     install_sdl3.dependOn(&install_sdl3_lib.step);
-    install_sdl3.dependOn(&install_license.step);
 
     b.getInstallStep().dependOn(&install_sdl3_lib.step);
-    b.getInstallStep().dependOn(&install_license.step);
 }
 
 fn addBuildConfigH(
@@ -588,7 +566,7 @@ fn addRevisionH(
     });
 }
 
-const c_files_windows = [_][]const u8{
+const windows_c_files = [_][]const u8{
     "src/SDL.c",
     "src/SDL_assert.c",
     "src/SDL_error.c",
@@ -809,6 +787,7 @@ const c_files_windows = [_][]const u8{
     "src/haptic/windows/SDL_dinputhaptic.c",
     "src/haptic/windows/SDL_windowshaptic.c",
     "src/camera/mediafoundation/SDL_camera_mediafoundation.c",
+    "src/dialog/SDL_dialog_utils.c",
     "src/dialog/windows/SDL_windowsdialog.c",
     "src/video/offscreen/SDL_offscreenevents.c",
     "src/video/offscreen/SDL_offscreenframebuffer.c",
@@ -818,7 +797,7 @@ const c_files_windows = [_][]const u8{
     "src/main/generic/SDL_sysmain_callbacks.c",
 };
 
-const c_files_linux = [_][]const u8{
+const linux_c_files = [_][]const u8{
     "src/SDL.c",
     "src/SDL_assert.c",
     "src/SDL_error.c",
@@ -1060,6 +1039,7 @@ const c_files_linux = [_][]const u8{
     "src/filesystem/posix/SDL_sysfsops.c",
     "src/time/unix/SDL_systime.c",
     "src/timer/unix/SDL_systimer.c",
+    "src/dialog/SDL_dialog_utils.c",
     "src/dialog/unix/SDL_unixdialog.c",
     "src/dialog/unix/SDL_portaldialog.c",
     "src/dialog/unix/SDL_zenitydialog.c",
@@ -1143,7 +1123,6 @@ const installed_headers = [_][]const u8{
     "SDL_platform.h",
     "SDL_power.h",
     "SDL_properties.h",
-    "SDL_quit.h",
     "SDL_rect.h",
     "SDL_render.h",
     "SDL_scancode.h",

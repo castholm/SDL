@@ -49,6 +49,7 @@
 #define SDL_render_h_
 
 #include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_properties.h>
 #include <SDL3/SDL_rect.h>
@@ -61,19 +62,26 @@ extern "C" {
 #endif
 
 /**
- * Flags used when creating a rendering context
+ * The name of the software renderer.
+ *
+ * \since This macro is available since SDL 3.0.0.
  */
-typedef enum
+#define SDL_SOFTWARE_RENDERER   "software"
+
+/**
+ * Flags used when creating a rendering context.
+ *
+ * \since This enum is available since SDL 3.0.0.
+ */
+typedef enum SDL_RendererFlags
 {
-    SDL_RENDERER_SOFTWARE = 0x00000001,         /**< The renderer is a software fallback */
-    SDL_RENDERER_ACCELERATED = 0x00000002,      /**< The renderer uses hardware
-                                                     acceleration */
-    SDL_RENDERER_PRESENTVSYNC = 0x00000004      /**< Present is synchronized
-                                                     with the refresh rate */
+    SDL_RENDERER_PRESENTVSYNC = 0x00000004  /**< Present is synchronized with the refresh rate */
 } SDL_RendererFlags;
 
 /**
  * Information on the capabilities of a render driver or context.
+ *
+ * \since This struct is available since SDL 3.0.0.
  */
 typedef struct SDL_RendererInfo
 {
@@ -86,7 +94,9 @@ typedef struct SDL_RendererInfo
 } SDL_RendererInfo;
 
 /**
- *  Vertex structure
+ * Vertex structure.
+ *
+ * \since This struct is available since SDL 3.0.0.
  */
 typedef struct SDL_Vertex
 {
@@ -97,8 +107,10 @@ typedef struct SDL_Vertex
 
 /**
  * The access pattern allowed for a texture.
+ *
+ * \since This enum is available since SDL 3.0.0.
  */
-typedef enum
+typedef enum SDL_TextureAccess
 {
     SDL_TEXTUREACCESS_STATIC,    /**< Changes rarely, not lockable */
     SDL_TEXTUREACCESS_STREAMING, /**< Changes frequently, lockable */
@@ -106,9 +118,11 @@ typedef enum
 } SDL_TextureAccess;
 
 /**
- * How the logical size is mapped to the output
+ * How the logical size is mapped to the output.
+ *
+ * \since This enum is available since SDL 3.0.0.
  */
-typedef enum
+typedef enum SDL_RendererLogicalPresentation
 {
     SDL_LOGICAL_PRESENTATION_DISABLED,  /**< There is no logical size in effect */
     SDL_LOGICAL_PRESENTATION_STRETCH,   /**< The rendered content is stretched to the output resolution */
@@ -119,12 +133,16 @@ typedef enum
 
 /**
  * A structure representing rendering state
+ *
+ * \since This struct is available since SDL 3.0.0.
  */
 struct SDL_Renderer;
 typedef struct SDL_Renderer SDL_Renderer;
 
 /**
  * An efficient driver-specific representation of pixel data
+ *
+ * \since This struct is available since SDL 3.0.0.
  */
 struct SDL_Texture;
 typedef struct SDL_Texture SDL_Texture;
@@ -178,6 +196,7 @@ extern DECLSPEC const char *SDLCALL SDL_GetRenderDriver(int index);
 /**
  * Create a window and default renderer.
  *
+ * \param title the title of the window, in UTF-8 encoding
  * \param width the width of the window
  * \param height the height of the window
  * \param window_flags the flags used to create the window (see
@@ -192,7 +211,7 @@ extern DECLSPEC const char *SDLCALL SDL_GetRenderDriver(int index);
  * \sa SDL_CreateRenderer
  * \sa SDL_CreateWindow
  */
-extern DECLSPEC int SDLCALL SDL_CreateWindowAndRenderer(int width, int height, SDL_WindowFlags window_flags, SDL_Window **window, SDL_Renderer **renderer);
+extern DECLSPEC int SDLCALL SDL_CreateWindowAndRenderer(const char *title, int width, int height, SDL_WindowFlags window_flags, SDL_Window **window, SDL_Renderer **renderer);
 
 /**
  * Create a 2D rendering context for a window.
@@ -202,10 +221,6 @@ extern DECLSPEC int SDLCALL SDL_CreateWindowAndRenderer(int width, int height, S
  * times, with indices from 0 to SDL_GetNumRenderDrivers()-1. If you don't
  * need a specific renderer, specify NULL and SDL will attempt to choose the
  * best option for you, based on what is available on the user's system.
- *
- * If you pass SDL_RENDERER_SOFTWARE in the flags, you will get a software
- * renderer, otherwise you will get a hardware accelerated renderer if
- * available.
  *
  * By default the rendering size matches the window size in pixels, but you
  * can call SDL_SetRenderLogicalPresentation() to change the content size and
@@ -479,9 +494,6 @@ extern DECLSPEC int SDLCALL SDL_GetCurrentRenderOutputSize(SDL_Renderer *rendere
 
 /**
  * Create a texture for a rendering context.
- *
- * You can set the texture scaling method by setting
- * `SDL_HINT_RENDER_SCALE_QUALITY` before creating the texture.
  *
  * \param renderer the rendering context
  * \param format one of the enumerated values in SDL_PixelFormatEnum
@@ -2020,10 +2032,6 @@ extern DECLSPEC void SDLCALL SDL_DestroyTexture(SDL_Texture *texture);
  * If `renderer` is NULL, this function will return immediately after setting
  * the SDL error message to "Invalid renderer". See SDL_GetError().
  *
- * Note that destroying a window implicitly destroys the associated renderer,
- * so this should not be called if the window associated with the renderer has
- * already been destroyed.
- *
  * \param renderer the rendering context
  *
  * \since This function is available since SDL 3.0.0.
@@ -2080,15 +2088,15 @@ extern DECLSPEC int SDLCALL SDL_FlushRenderer(SDL_Renderer *renderer);
 extern DECLSPEC void *SDLCALL SDL_GetRenderMetalLayer(SDL_Renderer *renderer);
 
 /**
- * Get the Metal command encoder for the current frame
+ * Get the Metal command encoder for the current frame.
  *
  * This function returns `void *`, so SDL doesn't have to include Metal's
  * headers, but it can be safely cast to an `id<MTLRenderCommandEncoder>`.
  *
- * Note that as of SDL 2.0.18, this will return NULL if Metal refuses to give
- * SDL a drawable to render to, which might happen if the window is
- * hidden/minimized/offscreen. This doesn't apply to command encoders for
- * render targets, just the window's backbuffer. Check your return values!
+ * This will return NULL if Metal refuses to give SDL a drawable to render to,
+ * which might happen if the window is hidden/minimized/offscreen. This
+ * doesn't apply to command encoders for render targets, just the window's
+ * backbuffer. Check your return values!
  *
  * \param renderer The renderer to query
  * \returns an `id<MTLRenderCommandEncoder>` on success, or NULL if the
