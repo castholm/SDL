@@ -24,7 +24,7 @@
 #ifndef SDL_pen_c_h_
 #define SDL_pen_c_h_
 
-#include "../../include/SDL3/SDL_pen.h"
+#include <SDL3/SDL_pen.h>
 #include "SDL_mouse_c.h"
 
 /* For testing alternate code paths: */
