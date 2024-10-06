@@ -826,7 +826,11 @@ pub fn build(b: *std.Build) void {
         sdl3_lib.installConfigHeader(build_config_h);
     }
 
-    const install_sdl3_lib = b.addInstallArtifact(sdl3_lib, .{});
+    const install_sdl3_lib = b.addInstallArtifact(sdl3_lib, .{
+        // Overrides needed by Zig 0.12.1
+        .dest_dir = if (sdl3_lib.producesImplib()) .{ .override = .bin } else .default,
+        .implib_dir = if (sdl3_lib.producesImplib()) .{ .override = .lib } else .default,
+    });
 
     const install_sdl3 = b.step("install-SDL3", "Install SDL3");
     install_sdl3.dependOn(&install_sdl3_lib.step);

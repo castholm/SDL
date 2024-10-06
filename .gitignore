@@ -165,5 +165,9 @@ docs/output
 SDL.tag
 doxygen_warn.txt
 
+# for Zig
 .zig-cache/
 zig-out/
+
+# for Zig 0.12.1 and earlier
+zig-cache/
