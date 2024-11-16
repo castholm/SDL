@@ -11,18 +11,18 @@ zig fetch --save git+https://github.com/castholm/SDL
 ```
 
 ```zig
-const sdl_dep = b.dependency("SDL", .{
+const sdl_dep = b.dependency("sdl", .{
     .target = target,
     .optimize = optimize,
-    .SDL3_static = false,
+    .preferred_link_mode = .shared,
 });
-const sdl3_lib = sdl_dep.artifact("SDL3");
-const sdl3_test_lib = sdl_dep.artifact("SDL3_test");
+const sdl_lib = sdl_dep.artifact("SDL3");
+const sdl_test_lib = sdl_dep.artifact("SDL3_test");
 ```
 
 ---
 
-Original README:
+Original README below:
 
 # Simple DirectMedia Layer (SDL) Version 3.0
 
@@ -34,8 +34,8 @@ hardware. It is used by video playback software, emulators, and popular games
 including Valve's award winning catalog and many Humble Bundle games.
 
 More extensive documentation is available in the docs directory, starting
-with [README.md](https://github.com/libsdl-org/SDL/blob/e292d1f5ace469f718d7b6b4dec8c28e37dcaa0e/docs/README.md). If you are migrating to SDL 3.0 from SDL 2.0,
-the changes are extensively documented in [README-migration.md](https://github.com/libsdl-org/SDL/blob/e292d1f5ace469f718d7b6b4dec8c28e37dcaa0e/docs/README-migration.md).
+with [README.md](https://github.com/libsdl-org/SDL/blob/preview-3.1.6/docs/README.md). If you are migrating to SDL 3.0 from SDL 2.0,
+the changes are extensively documented in [README-migration.md](https://github.com/libsdl-org/SDL/blob/preview-3.1.6/docs/README-migration.md).
 
 Enjoy!
 
