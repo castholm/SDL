@@ -1,30 +1,31 @@
 const std = @import("std");
 
-const version: std.SemanticVersion = .{ .major = 3, .minor = 1, .patch = 3 };
+const version: std.SemanticVersion = .{ .major = 3, .minor = 1, .patch = 6 };
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    const sdl3_static = b.option(
-        bool,
-        "SDL3_static",
-        "Build SDL3 as a static library",
-    ) orelse false;
-    const sdl3_install_build_config_h = b.option(
-        bool,
-        "SDL3_install_build_config_h",
-        "Install 'SDL_build_config.h' with SDL3 (for debugging)",
-    ) orelse false;
 
     var windows = false;
     if (target.result.os.tag == .windows) {
         windows = true;
     }
 
+    const preferred_link_mode = b.option(
+        std.builtin.LinkMode,
+        "preferred_link_mode",
+        "Prefer building SDL as a statically or dynamically linked library",
+    ) orelse .dynamic;
+    const install_build_config_h = b.option(
+        bool,
+        "install_build_config_h",
+        "Additionally install 'SDL_build_config.h' when installing SDL (for debugging)",
+    ) orelse false;
+
     const build_config_h: *std.Build.Step.ConfigHeader = build_config_h: {
         const cpu = target.result.cpu;
         const x86 = cpu.arch.isX86();
-        const arm = cpu.arch.isArmOrThumb();
+        const arm = if (@hasDecl(@TypeOf(cpu.arch), "isArm")) cpu.arch.isArm() else cpu.arch.isArmOrThumb(); // Zig 0.13.0 compat
         const aarch64 = cpu.arch.isAARCH64();
         const loongarch = cpu.arch == .loongarch32 or cpu.arch == .loongarch64;
         break :build_config_h b.addConfigHeader(.{
@@ -59,8 +60,10 @@ pub fn build(b: *std.Build) void {
             .HAVE_MALLOC = windows,
             .HAVE_CALLOC = windows,
             .HAVE_REALLOC = windows,
+            .HAVE_FDATASYNC = false,
             .HAVE_FREE = windows,
             .HAVE_GETENV = windows,
+            .HAVE_GETHOSTNAME = false,
             .HAVE_SETENV = false,
             .HAVE_PUTENV = windows,
             .HAVE_UNSETENV = false,
@@ -344,6 +347,7 @@ pub fn build(b: *std.Build) void {
             .SDL_VIDEO_DRIVER_VITA = false,
             .SDL_VIDEO_DRIVER_VIVANTE = false,
             .SDL_VIDEO_DRIVER_VIVANTE_VDK = false,
+            .SDL_VIDEO_DRIVER_OPENVR = false,
             .SDL_VIDEO_DRIVER_WAYLAND = false,
             .SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC = "",
             .SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_CURSOR = "",
@@ -434,11 +438,11 @@ pub fn build(b: *std.Build) void {
             .SDL_CAMERA_DRIVER_MEDIAFOUNDATION = windows,
             .SDL_CAMERA_DRIVER_PIPEWIRE = false,
             .SDL_CAMERA_DRIVER_PIPEWIRE_DYNAMIC = "",
+            .SDL_CAMERA_DRIVER_VITA = false,
+            .SDL_DIALOG_DUMMY = false,
             .SDL_MISC_DUMMY = false,
             .SDL_LOCALE_DUMMY = false,
             .SDL_ALTIVEC_BLITTERS = false,
-            .SDL_ARM_SIMD_BLITTERS = false,
-            .SDL_ARM_NEON_BLITTERS = false,
             .DYNAPI_NEEDS_DLOPEN = false,
             .SDL_USE_IME = false,
             .SDL_IPHONE_KEYBOARD = false,
@@ -488,7 +492,7 @@ pub fn build(b: *std.Build) void {
     sdl_uclibc_mod.addIncludePath(b.path("src"));
 
     sdl_uclibc_mod.addCSourceFiles(.{
-        .flags = c_flags,
+        .flags = &common_c_flags,
         .files = &.{
             "src/libm/e_atan2.c",
             "src/libm/e_exp.c",
@@ -518,10 +522,10 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    const sdl3_lib: *std.Build.Step.Compile = switch (sdl3_static) {
+    const sdl_lib: *std.Build.Step.Compile = switch (preferred_link_mode) {
         inline else => |x| switch (x) {
-            true => std.Build.addStaticLibrary,
-            false => std.Build.addSharedLibrary,
+            .static => std.Build.addStaticLibrary,
+            .dynamic => std.Build.addSharedLibrary,
         }(b, .{
             .name = "SDL3",
             .version = version,
@@ -530,27 +534,32 @@ pub fn build(b: *std.Build) void {
             .link_libc = true,
         }),
     };
-    const sdl3_mod = &sdl3_lib.root_module;
+    const sdl_mod = &sdl_lib.root_module;
 
-    sdl3_mod.addCMacro("USING_GENERATED_CONFIG_H", "1");
-    sdl3_mod.addCMacro("SDL_BUILD_MAJOR_VERSION", std.fmt.comptimePrint("{}", .{version.major}));
-    sdl3_mod.addCMacro("SDL_BUILD_MINOR_VERSION", std.fmt.comptimePrint("{}", .{version.minor}));
-    sdl3_mod.addCMacro("SDL_BUILD_MICRO_VERSION", std.fmt.comptimePrint("{}", .{version.patch}));
-    if (sdl3_static) {
-        sdl3_mod.addCMacro("SDL_STATIC_LIB", "1");
-    } else {
-        sdl3_mod.addCMacro("DLL_EXPORT", "1");
+    sdl_mod.addCMacro("USING_GENERATED_CONFIG_H", "1");
+    sdl_mod.addCMacro("SDL_BUILD_MAJOR_VERSION", std.fmt.comptimePrint("{}", .{version.major}));
+    sdl_mod.addCMacro("SDL_BUILD_MINOR_VERSION", std.fmt.comptimePrint("{}", .{version.minor}));
+    sdl_mod.addCMacro("SDL_BUILD_MICRO_VERSION", std.fmt.comptimePrint("{}", .{version.patch}));
+    switch (sdl_lib.linkage.?) {
+        .static => {
+            sdl_mod.addCMacro("SDL_STATIC_LIB", "1");
+        },
+        .dynamic => {
+            sdl_mod.addCMacro("DLL_EXPORT", "1");
+        },
     }
 
-    sdl3_mod.addConfigHeader(build_config_h);
-    sdl3_mod.addConfigHeader(revision_h);
-    sdl3_mod.addIncludePath(b.path("include"));
-    sdl3_mod.addIncludePath(b.path("src"));
-    sdl3_mod.addAfterIncludePath(b.path("src/video/khronos"));
+    sdl_mod.addConfigHeader(build_config_h);
+    sdl_mod.addConfigHeader(revision_h);
+    sdl_mod.addIncludePath(b.path("include"));
+    sdl_mod.addIncludePath(b.path("src"));
+    sdl_mod.addAfterIncludePath(b.path("src/video/khronos"));
 
     if (windows) {
-        sdl3_mod.addCSourceFiles(.{
-            .flags = c_flags,
+        sdl_mod.addCSourceFiles(.{
+            .flags = &(.{
+                "-std=c99",
+            } ++ common_c_flags),
             .files = &.{
                 "src/SDL.c",
                 "src/SDL_assert.c",
@@ -778,34 +787,34 @@ pub fn build(b: *std.Build) void {
                 "src/main/generic/SDL_sysmain_callbacks.c",
             },
         });
-        if (!sdl3_static) {
-            sdl3_mod.addWin32ResourceFile(.{ .file = b.path("src/core/windows/version.rc") });
+        if (sdl_lib.linkage.? == .dynamic) {
+            sdl_mod.addWin32ResourceFile(.{ .file = b.path("src/core/windows/version.rc") });
         }
     }
 
-    sdl3_mod.linkLibrary(sdl_uclibc_lib);
+    sdl_mod.linkLibrary(sdl_uclibc_lib);
     if (windows) {
-        sdl3_mod.linkSystemLibrary("m", .{});
-        sdl3_mod.linkSystemLibrary("kernel32", .{});
-        sdl3_mod.linkSystemLibrary("user32", .{});
-        sdl3_mod.linkSystemLibrary("gdi32", .{});
-        sdl3_mod.linkSystemLibrary("winmm", .{});
-        sdl3_mod.linkSystemLibrary("imm32", .{});
-        sdl3_mod.linkSystemLibrary("ole32", .{});
-        sdl3_mod.linkSystemLibrary("oleaut32", .{});
-        sdl3_mod.linkSystemLibrary("version", .{});
-        sdl3_mod.linkSystemLibrary("uuid", .{});
-        sdl3_mod.linkSystemLibrary("advapi32", .{});
-        sdl3_mod.linkSystemLibrary("setupapi", .{});
-        sdl3_mod.linkSystemLibrary("shell32", .{});
-        sdl3_mod.linkSystemLibrary("dinput8", .{});
+        sdl_mod.linkSystemLibrary("m", .{});
+        sdl_mod.linkSystemLibrary("kernel32", .{});
+        sdl_mod.linkSystemLibrary("user32", .{});
+        sdl_mod.linkSystemLibrary("gdi32", .{});
+        sdl_mod.linkSystemLibrary("winmm", .{});
+        sdl_mod.linkSystemLibrary("imm32", .{});
+        sdl_mod.linkSystemLibrary("ole32", .{});
+        sdl_mod.linkSystemLibrary("oleaut32", .{});
+        sdl_mod.linkSystemLibrary("version", .{});
+        sdl_mod.linkSystemLibrary("uuid", .{});
+        sdl_mod.linkSystemLibrary("advapi32", .{});
+        sdl_mod.linkSystemLibrary("setupapi", .{});
+        sdl_mod.linkSystemLibrary("shell32", .{});
+        sdl_mod.linkSystemLibrary("dinput8", .{});
     }
-    if (!sdl3_static) {
-        sdl3_lib.setVersionScript(b.path("src/dynapi/SDL_dynapi.sym"));
-        sdl3_lib.linker_allow_undefined_version = true;
+    if (sdl_lib.linkage.? == .dynamic) {
+        sdl_lib.setVersionScript(b.path("src/dynapi/SDL_dynapi.sym"));
+        sdl_lib.linker_allow_undefined_version = true;
     }
 
-    sdl3_lib.installHeadersDirectory(b.path("include/SDL3"), "SDL3", .{
+    sdl_lib.installHeadersDirectory(b.path("include/SDL3"), "SDL3", .{
         .exclude_extensions = &.{
             "SDL_revision.h",
             "SDL_test.h",
@@ -821,36 +830,36 @@ pub fn build(b: *std.Build) void {
             "SDL_test_memory.h",
         },
     });
-    sdl3_lib.installConfigHeader(revision_h);
-    if (sdl3_install_build_config_h) {
-        sdl3_lib.installConfigHeader(build_config_h);
+    sdl_lib.installConfigHeader(revision_h);
+    if (install_build_config_h) {
+        sdl_lib.installConfigHeader(build_config_h);
     }
 
-    const install_sdl3_lib = b.addInstallArtifact(sdl3_lib, .{
-        // Overrides needed by Zig 0.12.1
-        .dest_dir = if (sdl3_lib.producesImplib()) .{ .override = .bin } else .default,
-        .implib_dir = if (sdl3_lib.producesImplib()) .{ .override = .lib } else .default,
+    const install_sdl_lib = b.addInstallArtifact(sdl_lib, .{
+        // Zig 0.12.1 compat
+        .dest_dir = if (sdl_lib.producesImplib()) .{ .override = .bin } else .default,
+        .implib_dir = if (sdl_lib.producesImplib()) .{ .override = .lib } else .default,
     });
 
-    const install_sdl3 = b.step("install-SDL3", "Install SDL3");
-    install_sdl3.dependOn(&install_sdl3_lib.step);
+    const install_sdl = b.step("install_sdl", "Install SDL");
+    install_sdl.dependOn(&install_sdl_lib.step);
 
-    b.getInstallStep().dependOn(&install_sdl3_lib.step);
+    b.getInstallStep().dependOn(&install_sdl_lib.step);
 
-    const sdl3_test_lib = b.addStaticLibrary(.{
+    const sdl_test_lib = b.addStaticLibrary(.{
         .name = "SDL3_test",
         .target = target,
         .optimize = optimize,
         .link_libc = true,
     });
-    const sdl3_test_mod = &sdl3_test_lib.root_module;
+    const sdl_test_mod = &sdl_test_lib.root_module;
 
-    sdl3_test_mod.addConfigHeader(build_config_h);
-    sdl3_test_mod.addConfigHeader(revision_h);
-    sdl3_test_mod.addIncludePath(b.path("include"));
+    sdl_test_mod.addConfigHeader(build_config_h);
+    sdl_test_mod.addConfigHeader(revision_h);
+    sdl_test_mod.addIncludePath(b.path("include"));
 
-    sdl3_test_mod.addCSourceFiles(.{
-        .flags = c_flags,
+    sdl_test_mod.addCSourceFiles(.{
+        .flags = &common_c_flags,
         .files = &.{
             "src/test/SDL_test_assert.c",
             "src/test/SDL_test_common.c",
@@ -865,7 +874,7 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    sdl3_test_lib.installHeadersDirectory(b.path("include/SDL3"), "SDL3", .{
+    sdl_test_lib.installHeadersDirectory(b.path("include/SDL3"), "SDL3", .{
         .include_extensions = &.{
             "SDL_test.h",
             "SDL_test_assert.h",
@@ -881,15 +890,15 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    const install_sdl3_test_lib = b.addInstallArtifact(sdl3_test_lib, .{});
+    const install_sdl_test_lib = b.addInstallArtifact(sdl_test_lib, .{});
 
-    const install_sdl3_test = b.step("install-SDL3_test", "Install SDL3_test");
-    install_sdl3_test.dependOn(&install_sdl3_test_lib.step);
+    const install_sdl_test = b.step("install_sdl_test", "Install SDL_test");
+    install_sdl_test.dependOn(&install_sdl_test_lib.step);
 
-    b.getInstallStep().dependOn(&install_sdl3_test_lib.step);
+    b.getInstallStep().dependOn(&install_sdl_test_lib.step);
 }
 
-const c_flags: []const []const u8 = &.{
+const common_c_flags = .{
     "-gdwarf-4",
     "-Wall",
     "-Wundef",
