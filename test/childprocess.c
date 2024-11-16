@@ -5,13 +5,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-#ifdef SDL_PLATFORM_WINDOWS
-#include <windows.h>
-#else
-#include <fcntl.h>
-#include <unistd.h>
-#endif
-
 int main(int argc, char *argv[]) {
     SDLTest_CommonState *state;
     int i;
@@ -20,6 +13,7 @@ int main(int argc, char *argv[]) {
     bool stdin_to_stdout = false;
     bool read_stdin = false;
     bool stdin_to_stderr = false;
+    SDL_IOStream *log_stdin = NULL;
     int exit_code = 0;
 
     state = SDLTest_CommonCreateState(argv, 0);
@@ -52,6 +46,15 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "%s", argv[i + 1]);
                     consumed = 2;
                 }
+            } else if (SDL_strcmp(argv[i], "--log-stdin") == 0) {
+                if (i + 1 < argc) {
+                    log_stdin = SDL_IOFromFile(argv[i + 1], "w");
+                    if (!log_stdin) {
+                        fprintf(stderr, "Couldn't open %s\n", argv[i + 1]);
+                        return 2;
+                    }
+                    consumed = 2;
+                }
             } else if (SDL_strcmp(argv[i], "--exit-code") == 0) {
                 if (i + 1 < argc) {
                     char *endptr = NULL;
@@ -82,6 +85,7 @@ int main(int argc, char *argv[]) {
                 "[--print-arguments]",
                 "[--print-environment]",
                 "[--stdin]",
+                "[--log-stdin FILE]",
                 "[--stdin-to-stdout]",
                 "[--stdout TEXT]",
                 "[--stdin-to-stderr]",
@@ -101,6 +105,7 @@ int main(int argc, char *argv[]) {
         for (print_i = 0; i + print_i < argc; print_i++) {
             fprintf(stdout, "|%d=%s|\r\n", print_i, argv[i + print_i]);
         }
+        fflush(stdout);
     }
 
     if (print_environment) {
@@ -111,18 +116,8 @@ int main(int argc, char *argv[]) {
             }
             SDL_free(env);
         }
+        fflush(stdout);
     }
-
-#ifdef SDL_PLATFORM_WINDOWS
-    {
-        DWORD mode;
-        HANDLE stdout_handle = GetStdHandle(STD_INPUT_HANDLE);
-        GetConsoleMode(stdout_handle, &mode);
-        SetConsoleMode(stdout_handle, mode & ~(ENABLE_LINE_INPUT));
-    }
-#else
-    fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL, 0) & ~(O_NONBLOCK));
-#endif
 
     if (stdin_to_stdout || stdin_to_stderr || read_stdin) {
         for (;;) {
@@ -131,12 +126,29 @@ int main(int argc, char *argv[]) {
 
             result = fread(buffer, 1, sizeof(buffer), stdin);
             if (result == 0) {
-                if (errno == EAGAIN) {
-                    clearerr(stdin);
-                    SDL_Delay(20);
-                    continue;
+                if (!feof(stdin)) {
+                    char error[128];
+
+                    if (errno == EAGAIN) {
+                        clearerr(stdin);
+                        SDL_Delay(20);
+                        continue;
+                    }
+
+#ifdef SDL_PLATFORM_WINDOWS
+                    if (strerror_s(error, sizeof(error), errno) != 0) {
+                        SDL_strlcpy(error, "Unknown error", sizeof(error));
+                    }
+#else
+                    SDL_strlcpy(error, strerror(errno), sizeof(error));
+#endif
+                    SDL_Log("Error reading from stdin: %s\n", error);
                 }
                 break;
+            }
+            if (log_stdin) {
+                SDL_WriteIO(log_stdin, buffer, result);
+                SDL_FlushIO(log_stdin);
             }
             if (stdin_to_stdout) {
                 fwrite(buffer, 1, result, stdout);
@@ -146,6 +158,10 @@ int main(int argc, char *argv[]) {
                 fwrite(buffer, 1, result, stderr);
             }
         }
+    }
+
+    if (log_stdin) {
+        SDL_CloseIO(log_stdin);
     }
 
     SDLTest_CommonDestroyState(state);

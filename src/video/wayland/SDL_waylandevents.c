@@ -638,7 +638,7 @@ static bool ProcessHitTest(SDL_WindowData *window_data,
         switch (window_data->hit_test_result) {
         case SDL_HITTEST_DRAGGABLE:
 #ifdef HAVE_LIBDECOR_H
-            if (window_data->shell_surface_type == WAYLAND_SURFACE_LIBDECOR) {
+            if (window_data->shell_surface_type == WAYLAND_SHELL_SURFACE_TYPE_LIBDECOR) {
                 if (window_data->shell_surface.libdecor.frame) {
                     libdecor_frame_move(window_data->shell_surface.libdecor.frame,
                                         seat,
@@ -646,9 +646,9 @@ static bool ProcessHitTest(SDL_WindowData *window_data,
                 }
             } else
 #endif
-                if (window_data->shell_surface_type == WAYLAND_SURFACE_XDG_TOPLEVEL) {
-                if (window_data->shell_surface.xdg.roleobj.toplevel) {
-                    xdg_toplevel_move(window_data->shell_surface.xdg.roleobj.toplevel,
+                if (window_data->shell_surface_type == WAYLAND_SHELL_SURFACE_TYPE_XDG_TOPLEVEL) {
+                if (window_data->shell_surface.xdg.toplevel.xdg_toplevel) {
+                    xdg_toplevel_move(window_data->shell_surface.xdg.toplevel.xdg_toplevel,
                                       seat,
                                       serial);
                 }
@@ -664,7 +664,7 @@ static bool ProcessHitTest(SDL_WindowData *window_data,
         case SDL_HITTEST_RESIZE_BOTTOMLEFT:
         case SDL_HITTEST_RESIZE_LEFT:
 #ifdef HAVE_LIBDECOR_H
-            if (window_data->shell_surface_type == WAYLAND_SURFACE_LIBDECOR) {
+            if (window_data->shell_surface_type == WAYLAND_SHELL_SURFACE_TYPE_LIBDECOR) {
                 if (window_data->shell_surface.libdecor.frame) {
                     libdecor_frame_resize(window_data->shell_surface.libdecor.frame,
                                           seat,
@@ -673,9 +673,9 @@ static bool ProcessHitTest(SDL_WindowData *window_data,
                 }
             } else
 #endif
-                if (window_data->shell_surface_type == WAYLAND_SURFACE_XDG_TOPLEVEL) {
-                if (window_data->shell_surface.xdg.roleobj.toplevel) {
-                    xdg_toplevel_resize(window_data->shell_surface.xdg.roleobj.toplevel,
+                if (window_data->shell_surface_type == WAYLAND_SHELL_SURFACE_TYPE_XDG_TOPLEVEL) {
+                if (window_data->shell_surface.xdg.toplevel.xdg_toplevel) {
+                    xdg_toplevel_resize(window_data->shell_surface.xdg.toplevel.xdg_toplevel,
                                         seat,
                                         serial,
                                         directions[window_data->hit_test_result - SDL_HITTEST_RESIZE_TOPLEFT]);
@@ -1991,7 +1991,7 @@ static void data_offer_handle_offer(void *data, struct wl_data_offer *wl_data_of
 {
     SDL_WaylandDataOffer *offer = data;
     Wayland_data_offer_add_mime(offer, mime_type);
-    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+    SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                  ". In wl_data_offer_listener . data_offer_handle_offer on data_offer 0x%08x for MIME '%s'\n",
                  (wl_data_offer ? WAYLAND_wl_proxy_get_id((struct wl_proxy *)wl_data_offer) : -1),
                  mime_type);
@@ -2000,7 +2000,7 @@ static void data_offer_handle_offer(void *data, struct wl_data_offer *wl_data_of
 static void data_offer_handle_source_actions(void *data, struct wl_data_offer *wl_data_offer,
                                              uint32_t source_actions)
 {
-    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+    SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                  ". In wl_data_offer_listener . data_offer_handle_source_actions on data_offer 0x%08x for Source Actions '%d'\n",
                  (wl_data_offer ? WAYLAND_wl_proxy_get_id((struct wl_proxy *)wl_data_offer) : -1),
                  source_actions);
@@ -2009,7 +2009,7 @@ static void data_offer_handle_source_actions(void *data, struct wl_data_offer *w
 static void data_offer_handle_actions(void *data, struct wl_data_offer *wl_data_offer,
                                       uint32_t dnd_action)
 {
-    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+    SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                  ". In wl_data_offer_listener . data_offer_handle_actions on data_offer 0x%08x for DND Actions '%d'\n",
                  (wl_data_offer ? WAYLAND_wl_proxy_get_id((struct wl_proxy *)wl_data_offer) : -1),
                  dnd_action);
@@ -2026,7 +2026,7 @@ static void primary_selection_offer_handle_offer(void *data, struct zwp_primary_
 {
     SDL_WaylandPrimarySelectionOffer *offer = data;
     Wayland_primary_selection_offer_add_mime(offer, mime_type);
-    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+    SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                  ". In zwp_primary_selection_offer_v1_listener . primary_selection_offer_handle_offer on primary_selection_offer 0x%08x for MIME '%s'\n",
                  (zwp_primary_selection_offer_v1 ? WAYLAND_wl_proxy_get_id((struct wl_proxy *)zwp_primary_selection_offer_v1) : -1),
                  mime_type);
@@ -2046,7 +2046,7 @@ static void data_device_handle_data_offer(void *data, struct wl_data_device *wl_
         WAYLAND_wl_list_init(&(data_offer->mimes));
         wl_data_offer_set_user_data(id, data_offer);
         wl_data_offer_add_listener(id, &data_offer_listener, data_offer);
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+        SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                      ". In wl_data_device_listener . data_device_handle_data_offer on data_offer 0x%08x\n",
                      (id ? WAYLAND_wl_proxy_get_id((struct wl_proxy *)id) : -1));
     }
@@ -2104,25 +2104,25 @@ static void data_device_handle_enter(void *data, struct wl_data_device *wl_data_
                 const float dx = (float)wl_fixed_to_double(x);
                 const float dy = (float)wl_fixed_to_double(y);
                 SDL_SendDropPosition(data_device->dnd_window, dx, dy);
-                SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+                SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                              ". In wl_data_device_listener . data_device_handle_enter on data_offer 0x%08x at %d x %d into window %d for serial %d\n",
                              WAYLAND_wl_proxy_get_id((struct wl_proxy *)id),
                              wl_fixed_to_int(x), wl_fixed_to_int(y), SDL_GetWindowID(data_device->dnd_window), serial);
             } else {
                 data_device->dnd_window = NULL;
-                SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+                SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                              ". In wl_data_device_listener . data_device_handle_enter on data_offer 0x%08x at %d x %d for serial %d\n",
                              WAYLAND_wl_proxy_get_id((struct wl_proxy *)id),
                              wl_fixed_to_int(x), wl_fixed_to_int(y), serial);
             }
         } else {
-            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+            SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                          ". In wl_data_device_listener . data_device_handle_enter on data_offer 0x%08x at %d x %d for serial %d\n",
                          WAYLAND_wl_proxy_get_id((struct wl_proxy *)id),
                          wl_fixed_to_int(x), wl_fixed_to_int(y), serial);
         }
     } else {
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+        SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                      ". In wl_data_device_listener . data_device_handle_enter on data_offer 0x%08x at %d x %d for serial %d\n",
                      -1, wl_fixed_to_int(x), wl_fixed_to_int(y), serial);
     }
@@ -2134,12 +2134,13 @@ static void data_device_handle_leave(void *data, struct wl_data_device *wl_data_
 
     if (data_device->drag_offer) {
         if (data_device->dnd_window) {
-            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+            SDL_SendDropComplete(data_device->dnd_window);
+            SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                          ". In wl_data_device_listener . data_device_handle_leave on data_offer 0x%08x from window %d for serial %d\n",
                          WAYLAND_wl_proxy_get_id((struct wl_proxy *)data_device->drag_offer->offer),
                          SDL_GetWindowID(data_device->dnd_window), data_device->drag_serial);
         } else {
-            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+            SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                          ". In wl_data_device_listener . data_device_handle_leave on data_offer 0x%08x for serial %d\n",
                          WAYLAND_wl_proxy_get_id((struct wl_proxy *)data_device->drag_offer->offer),
                          data_device->drag_serial);
@@ -2147,7 +2148,7 @@ static void data_device_handle_leave(void *data, struct wl_data_device *wl_data_
         Wayland_data_offer_destroy(data_device->drag_offer);
         data_device->drag_offer = NULL;
     } else {
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+        SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                      ". In wl_data_device_listener . data_device_handle_leave on data_offer 0x%08x for serial %d\n",
                      -1, -1);
     }
@@ -2169,13 +2170,13 @@ static void data_device_handle_motion(void *data, struct wl_data_device *wl_data
          *      hammer the DBus interface hundreds or even thousands of times per second.
          */
         SDL_SendDropPosition(data_device->dnd_window, dx, dy);
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+        SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                      ". In wl_data_device_listener . data_device_handle_motion on data_offer 0x%08x at %d x %d in window %d serial %d\n",
                      WAYLAND_wl_proxy_get_id((struct wl_proxy *)data_device->drag_offer->offer),
                      wl_fixed_to_int(x), wl_fixed_to_int(y),
                      SDL_GetWindowID(data_device->dnd_window), data_device->drag_serial);
     } else {
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+        SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                      ". In wl_data_device_listener . data_device_handle_motion on data_offer 0x%08x at %d x %d serial %d\n",
                      -1, wl_fixed_to_int(x), wl_fixed_to_int(y), -1);
     }
@@ -2186,7 +2187,7 @@ static void data_device_handle_drop(void *data, struct wl_data_device *wl_data_d
     SDL_WaylandDataDevice *data_device = data;
 
     if (data_device->drag_offer && data_device->dnd_window && (data_device->has_mime_file || data_device->has_mime_text)) {
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+        SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                      ". In wl_data_device_listener . data_device_handle_drop on data_offer 0x%08x in window %d serial %d\n",
                      WAYLAND_wl_proxy_get_id((struct wl_proxy *)data_device->drag_offer->offer),
                      SDL_GetWindowID(data_device->dnd_window), data_device->drag_serial);
@@ -2268,13 +2269,47 @@ static void data_device_handle_drop(void *data, struct wl_data_device *wl_data_d
             wl_data_offer_finish(data_device->drag_offer->offer);
         }
     } else {
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+        SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                      ". In wl_data_device_listener . data_device_handle_drop on data_offer 0x%08x serial %d\n",
                      -1, -1);
     }
 
     Wayland_data_offer_destroy(data_device->drag_offer);
     data_device->drag_offer = NULL;
+}
+
+static void notifyFromMimes(struct wl_list *mimes) {
+    int nformats = 0;
+    char **new_mime_types = NULL;
+    if (mimes) {
+        nformats = WAYLAND_wl_list_length(mimes);
+        size_t alloc_size = (nformats + 1) * sizeof(char *);
+
+        /* do a first pass to compute allocation size */
+        SDL_MimeDataList *item = NULL;
+        wl_list_for_each(item, mimes, link) {
+            alloc_size += SDL_strlen(item->mime_type) + 1;
+        }
+
+        new_mime_types = SDL_AllocateTemporaryMemory(alloc_size);
+        if (!new_mime_types) {
+            SDL_LogError(SDL_LOG_CATEGORY_INPUT, "unable to allocate new_mime_types");
+            return;
+        }
+
+        /* second pass to fill*/
+        char *strPtr = (char *)(new_mime_types + nformats + 1);
+        item = NULL;
+        int i = 0;
+        wl_list_for_each(item, mimes, link) {
+            new_mime_types[i] = strPtr;
+            strPtr = stpcpy(strPtr, item->mime_type) + 1;
+            i++;
+        }
+        new_mime_types[nformats] = NULL;
+    }
+
+    SDL_SendClipboardUpdate(false, new_mime_types, nformats);
 }
 
 static void data_device_handle_selection(void *data, struct wl_data_device *wl_data_device,
@@ -2287,7 +2322,7 @@ static void data_device_handle_selection(void *data, struct wl_data_device *wl_d
         offer = wl_data_offer_get_user_data(id);
     }
 
-    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+    SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                  ". In data_device_listener . data_device_handle_selection on data_offer 0x%08x\n",
                  (id ? WAYLAND_wl_proxy_get_id((struct wl_proxy *)id) : -1));
     if (data_device->selection_offer != offer) {
@@ -2295,7 +2330,7 @@ static void data_device_handle_selection(void *data, struct wl_data_device *wl_d
         data_device->selection_offer = offer;
     }
 
-    SDL_SendClipboardUpdate();
+    notifyFromMimes(offer ? &offer->mimes : NULL);
 }
 
 static const struct wl_data_device_listener data_device_listener = {
@@ -2318,7 +2353,7 @@ static void primary_selection_device_handle_offer(void *data, struct zwp_primary
         zwp_primary_selection_offer_v1_set_user_data(id, primary_selection_offer);
         zwp_primary_selection_offer_v1_add_listener(id, &primary_selection_offer_listener, primary_selection_offer);
     }
-    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+    SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                  ". In zwp_primary_selection_device_v1_listener . primary_selection_device_handle_offer on primary_selection_offer 0x%08x\n",
                  (id ? WAYLAND_wl_proxy_get_id((struct wl_proxy *)id) : -1));
 }
@@ -2337,11 +2372,11 @@ static void primary_selection_device_handle_selection(void *data, struct zwp_pri
         Wayland_primary_selection_offer_destroy(primary_selection_device->selection_offer);
         primary_selection_device->selection_offer = offer;
     }
-    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
+    SDL_LogTrace(SDL_LOG_CATEGORY_INPUT,
                  ". In zwp_primary_selection_device_v1_listener . primary_selection_device_handle_selection on primary_selection_offer 0x%08x\n",
                  (id ? WAYLAND_wl_proxy_get_id((struct wl_proxy *)id) : -1));
 
-    SDL_SendClipboardUpdate();
+    notifyFromMimes(offer ? &offer->mimes : NULL);
 }
 
 static const struct zwp_primary_selection_device_v1_listener primary_selection_device_listener = {

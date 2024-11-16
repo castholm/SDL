@@ -65,7 +65,7 @@ SDL_OpenAudioDevice(...)
 expression e;
 @@
 - SDL_PauseAudio(e)
-+ e == SDL_TRUE ? SDL_PauseAudioDevice(g_audio_id) : SDL_PlayAudioDevice(g_audio_id)
++ e ? SDL_PauseAudioDevice(g_audio_id) : SDL_PlayAudioDevice(g_audio_id)
 
 @@
 @@
@@ -92,13 +92,13 @@ expression e1;
 @@
 (
 - SDL_EventState(e1, SDL_IGNORE)
-+ SDL_SetEventEnabled(e1, SDL_FALSE)
++ SDL_SetEventEnabled(e1, false)
 |
 - SDL_EventState(e1, SDL_DISABLE)
-+ SDL_SetEventEnabled(e1, SDL_FALSE)
++ SDL_SetEventEnabled(e1, false)
 |
 - SDL_EventState(e1, SDL_ENABLE)
-+ SDL_SetEventEnabled(e1, SDL_TRUE)
++ SDL_SetEventEnabled(e1, true)
 |
 - SDL_EventState(e1, SDL_QUERY)
 + SDL_EventEnabled(e1)
@@ -2062,7 +2062,7 @@ expression e;
 @@
 @@
 - SDL_WINDOWEVENT_TAKE_FOCUS
-+ SDL_EVENT_WINDOW_TAKE_FOCUS
++ /* FIXME MIGRATION: SDL_WINDOWEVENT_TAKE_FOCUS has been removed; there is no replacement. */ 0
 @@
 @@
 - SDL_WINDOWEVENT_HIT_TEST
@@ -3633,11 +3633,11 @@ typedef SDL_JoystickGUID, SDL_GUID;
 @@
 @@
 - SDL_PRESSED
-+ SDL_TRUE
++ true
 @@
 @@
 - SDL_RELEASED
-+ SDL_FALSE
++ false
 
 // This should be the last rule in the file, since it works on SDL3 functions and previous rules may have renamed old functions.
 @ bool_return_type  @
@@ -3689,6 +3689,7 @@ identifier func =~ "^(SDL_AddEventWatch|SDL_AddHintCallback|SDL_AddSurfaceAltern
 + SDL_GetNumLogicalCPUCores
   (...)
 @@
+typedef SDL_bool, bool;
 @@
 - SDL_bool
 + bool
@@ -3714,3 +3715,19 @@ identifier func =~ "^(SDL_AddEventWatch|SDL_AddHintCallback|SDL_AddSurfaceAltern
 @@
 - SDL_BUTTON
 + SDL_BUTTON_MASK
+@@
+@@
+- SDL_GLprofile
++ SDL_GLProfile
+@@
+@@
+- SDL_GLcontextFlag
++ SDL_GLContextFlag
+@@
+@@
+- SDL_GLcontextReleaseFlag
++ SDL_GLContextReleaseFlag
+@@
+@@
+- SDL_GLattr
++ SDL_GLAttr

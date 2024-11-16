@@ -19,13 +19,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
     int i;
 
+    SDL_SetAppMetadata("Example Renderer Primitives", "1.0", "com.example.renderer-primitives");
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't initialize SDL!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     if (!SDL_CreateWindowAndRenderer("examples/renderer/primitives", 640, 480, 0, &window, &renderer)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't create window/renderer!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -53,22 +55,22 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_FRect rect;
 
     /* as you can see from this, rendering draws over whatever was drawn before it. */
-    SDL_SetRenderDrawColor(renderer, 33, 33, 33, 255);  /* dark gray, full alpha */
+    SDL_SetRenderDrawColor(renderer, 33, 33, 33, SDL_ALPHA_OPAQUE);  /* dark gray, full alpha */
     SDL_RenderClear(renderer);  /* start with a blank canvas. */
 
     /* draw a filled rectangle in the middle of the canvas. */
-    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);  /* blue, full alpha */
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);  /* blue, full alpha */
     rect.x = rect.y = 100;
     rect.w = 440;
     rect.h = 280;
     SDL_RenderFillRect(renderer, &rect);
 
     /* draw some points across the canvas. */
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);  /* red, full alpha */
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);  /* red, full alpha */
     SDL_RenderPoints(renderer, points, SDL_arraysize(points));
 
     /* draw a unfilled rectangle in-set a little bit. */
-    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);  /* green, full alpha */
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);  /* green, full alpha */
     rect.x += 30;
     rect.y += 30;
     rect.w -= 60;
@@ -76,7 +78,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderRect(renderer, &rect);
 
     /* draw two lines in an X across the whole canvas. */
-    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);  /* yellow, full alpha */
+    SDL_SetRenderDrawColor(renderer, 255, 255, 0, SDL_ALPHA_OPAQUE);  /* yellow, full alpha */
     SDL_RenderLine(renderer, 0, 0, 640, 480);
     SDL_RenderLine(renderer, 0, 480, 640, 0);
 

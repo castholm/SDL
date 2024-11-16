@@ -798,7 +798,7 @@ The following functions have been removed:
 
 Calling SDL_GetHint() with the name of the hint being changed from within a hint callback will now return the new value rather than the old value. The old value is still passed as a parameter to the hint callback.
 
-The environment variables SDL_VIDEODRIVER and SDL_AUDIODRIVER have been renamed to SDL_VIDEO_DRIVER and SDL_AUDIO_DRIVER.
+The environment variables SDL_VIDEODRIVER and SDL_AUDIODRIVER have been renamed to SDL_VIDEO_DRIVER and SDL_AUDIO_DRIVER, but the old names are still supported as a fallback.
 
 The environment variables SDL_VIDEO_X11_WMCLASS and SDL_VIDEO_WAYLAND_WMCLASS have been removed and replaced by either using the appindentifier param to SDL_SetAppMetadata() or setting SDL_PROP_APP_METADATA_IDENTIFIER_STRING with SDL_SetAppMetadataProperty()
 
@@ -2134,7 +2134,9 @@ SDL_CreateWindow() has been simplified and no longer takes a window position. Yo
     SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, y);
     SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width);
     SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height);
-    SDL_SetNumberProperty(props, "flags", flags);
+    // For window flags you should use separate window creation properties,
+    // but for easier migration from SDL2 you can use the following:
+    SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, flags);
     pWindow = SDL_CreateWindowWithProperties(props);
     SDL_DestroyProperties(props);
     if (window) {
@@ -2227,6 +2229,10 @@ The following symbols have been renamed:
 * SDL_DISPLAYEVENT_DISCONNECTED => SDL_EVENT_DISPLAY_REMOVED
 * SDL_DISPLAYEVENT_MOVED => SDL_EVENT_DISPLAY_MOVED
 * SDL_DISPLAYEVENT_ORIENTATION => SDL_EVENT_DISPLAY_ORIENTATION
+* SDL_GLattr => SDL_GLAttr
+* SDL_GLcontextFlag => SDL_GLContextFlag
+* SDL_GLcontextReleaseFlag => SDL_GLContextReleaseFlag
+* SDL_GLprofile => SDL_GLProfile
 * SDL_WINDOWEVENT_CLOSE => SDL_EVENT_WINDOW_CLOSE_REQUESTED
 * SDL_WINDOWEVENT_DISPLAY_CHANGED => SDL_EVENT_WINDOW_DISPLAY_CHANGED
 * SDL_WINDOWEVENT_ENTER => SDL_EVENT_WINDOW_MOUSE_ENTER

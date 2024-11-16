@@ -25,13 +25,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     SDL_Surface *surface = NULL;
     char *bmp_path = NULL;
 
+    SDL_SetAppMetadata("Example Renderer Color Mods", "1.0", "com.example.renderer-color-mods");
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't initialize SDL!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     if (!SDL_CreateWindowAndRenderer("examples/renderer/color-mods", WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't create window/renderer!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -44,7 +46,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     SDL_asprintf(&bmp_path, "%ssample.bmp", SDL_GetBasePath());  /* allocate a string of the full file path */
     surface = SDL_LoadBMP(bmp_path);
     if (!surface) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't load bitmap!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't load bitmap: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -55,7 +57,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     if (!texture) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't create static texture!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't create static texture: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -84,7 +86,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     const float blue = (float) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 4 / 3));
 
     /* as you can see from this, rendering draws over whatever was drawn before it. */
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);  /* black, full alpha */
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);  /* black, full alpha */
     SDL_RenderClear(renderer);  /* start with a blank canvas. */
 
     /* Just draw the static texture a few times. You can think of it like a

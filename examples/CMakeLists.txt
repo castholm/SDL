@@ -134,13 +134,26 @@ add_sdl_example_executable(renderer-color-mods SOURCES renderer/11-color-mods/co
 add_sdl_example_executable(renderer-viewport SOURCES renderer/14-viewport/viewport.c DATAFILES ${CMAKE_CURRENT_SOURCE_DIR}/../test/sample.bmp)
 add_sdl_example_executable(renderer-cliprect SOURCES renderer/15-cliprect/cliprect.c DATAFILES ${CMAKE_CURRENT_SOURCE_DIR}/../test/sample.bmp)
 add_sdl_example_executable(renderer-read-pixels SOURCES renderer/17-read-pixels/read-pixels.c DATAFILES ${CMAKE_CURRENT_SOURCE_DIR}/../test/sample.bmp)
+add_sdl_example_executable(renderer-debug-text SOURCES renderer/18-debug-text/debug-text.c)
 add_sdl_example_executable(audio-simple-playback SOURCES audio/01-simple-playback/simple-playback.c)
 add_sdl_example_executable(audio-simple-playback-callback SOURCES audio/02-simple-playback-callback/simple-playback-callback.c)
 add_sdl_example_executable(audio-load-wav SOURCES audio/03-load-wav/load-wav.c DATAFILES ${CMAKE_CURRENT_SOURCE_DIR}/../test/sample.wav)
 add_sdl_example_executable(camera-read-and-draw SOURCES camera/01-read-and-draw/read-and-draw.c)
 add_sdl_example_executable(pen-drawing-lines SOURCES pen/01-drawing-lines/drawing-lines.c)
 add_sdl_example_executable(game-snake SOURCES game/01-snake/snake.c)
+add_sdl_example_executable(game-woodeneye-008 SOURCES game/02-woodeneye-008/woodeneye-008.c)
+add_sdl_example_executable(game-infinite-monkeys SOURCES game/03-infinite-monkeys/infinite-monkeys.c)
 
+# When you add an example, remember to add the Visual Studio project as well:
+# - Add a new example in examples/
+# - Run python VisualC/examples/generate.py
+# - Take note of the newly generated .vcxproj files
+# - Modify the .vcxproj files if necessary (adding content such as BMP or WAV files)
+# - Open VisualC/SDL.sln in Visual Studio or JetBrains Rider
+# - Locate the appropriate folder in the Solution Explorer
+# - Add the newly generated projects: Right click -> Add -> Existing project...
+# - Test if they work
+# - Save the SDL.sln solution
 
 if(PSP)
     # Build EBOOT files if building for PSP
@@ -151,36 +164,7 @@ if(PSP)
             ICON_PATH       NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH    NULL
-        )
-        add_custom_command(
-            TARGET ${APP} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-            $<TARGET_FILE_DIR:${ARG_TARGET}>/sdl-${APP}
-        )
-        add_custom_command(
-            TARGET ${APP} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E rename
-            $<TARGET_FILE_DIR:${ARG_TARGET}>/EBOOT.PBP
-            $<TARGET_FILE_DIR:${ARG_TARGET}>/sdl-${APP}/EBOOT.PBP
-        )
-        if(BUILD_PRX)
-            add_custom_command(
-                TARGET ${APP} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy
-                $<TARGET_FILE_DIR:${ARG_TARGET}>/${APP}
-                $<TARGET_FILE_DIR:${ARG_TARGET}>/sdl-${APP}/${APP}
-            )
-            add_custom_command(
-                TARGET ${APP} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E rename
-                $<TARGET_FILE_DIR:${ARG_TARGET}>/${APP}.prx
-                $<TARGET_FILE_DIR:${ARG_TARGET}>/sdl-${APP}/${APP}.prx
-            )
-        endif()
-        add_custom_command(
-            TARGET ${APP} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E remove
-            $<TARGET_FILE_DIR:${ARG_TARGET}>/PARAM.SFO
+            OUTPUT_DIR      $<TARGET_FILE_DIR:${APP}>/sdl-${APP}
         )
     endforeach()
 endif()

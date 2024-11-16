@@ -201,7 +201,7 @@ SDL supports following Apple architectures:
 
 CMake documentation: [link](https://cmake.org/cmake/help/latest/variable/CMAKE_OSX_ARCHITECTURES.html)
 
-#### Simulators and/or non-default maxOS platform SDK
+#### Simulators and/or non-default macOS platform SDK
 
 Use `-DCMAKE_OSX_SYSROOT=<value>` to configure a different platform SDK.
 The value can be either the name of the SDK, or a full path to the sdk (e.g. `/full/path/to/iPhoneOS.sdk`).
@@ -226,29 +226,29 @@ CMake documentation: [link](https://cmake.org/cmake/help/latest/variable/CMAKE_O
 - for macOS, building a dylib and/or static library for x86_64 and arm64:
 
     ```bash
-    cmake ~/sdl -DCMAKE_SYSTEM_NAME=Darwin -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+    cmake ~/sdl -DCMAKE_SYSTEM_NAME=Darwin -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11
 
 - for macOS, building an universal framework for x86_64 and arm64:
 
     ```bash
-    cmake ~/sdl -DSDL_FRAMEWORK=ON -DCMAKE_SYSTEM_NAME=Darwin -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+    cmake ~/sdl -DSDL_FRAMEWORK=ON -DCMAKE_SYSTEM_NAME=Darwin -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11
 
 - for iOS-Simulator, using the latest, installed SDK:
 
     ```bash
-    cmake ~/sdl -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=x86_64
+    cmake ~/sdl -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=9.0
     ```
 
 - for iOS-Device, using the latest, installed SDK, 64-bit only
 
     ```bash
-    cmake ~/sdl -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64
+    cmake ~/sdl -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=9.0
     ```
 
 - for iOS-Device, using the latest, installed SDK, mixed 32/64 bit
 
     ```cmake
-    cmake ~/sdl -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES="arm64;armv7s"
+    cmake ~/sdl -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES="arm64;armv7s" -DCMAKE_OSX_DEPLOYMENT_TARGET=9.0
     ```
 
 - for iOS-Device, using a specific SDK revision (iOS 12.4, in this example):
@@ -260,19 +260,19 @@ CMake documentation: [link](https://cmake.org/cmake/help/latest/variable/CMAKE_O
 - for iOS-Simulator, using the latest, installed SDK, and building SDL test apps (as .app bundles):
 
     ```cmake
-    cmake ~/sdl -DSDL_TESTS=1 -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=x86_64
+    cmake ~/sdl -DSDL_TESTS=1 -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=9.0
     ```
 
 - for tvOS-Simulator, using the latest, installed SDK:
 
     ```cmake
-    cmake ~/sdl -DCMAKE_SYSTEM_NAME=tvOS -DCMAKE_OSX_SYSROOT=appletvsimulator -DCMAKE_OSX_ARCHITECTURES=x86_64
+    cmake ~/sdl -DCMAKE_SYSTEM_NAME=tvOS -DCMAKE_OSX_SYSROOT=appletvsimulator -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=9.0
     ```
 
 - for tvOS-Device, using the latest, installed SDK:
 
     ```cmake
-    cmake ~/sdl -DCMAKE_SYSTEM_NAME=tvOS -DCMAKE_OSX_SYSROOT=appletvos -DCMAKE_OSX_ARCHITECTURES=arm64`
+    cmake ~/sdl -DCMAKE_SYSTEM_NAME=tvOS -DCMAKE_OSX_SYSROOT=appletvos -DCMAKE_OSX_ARCHITECTURES=arm64` -DCMAKE_OSX_DEPLOYMENT_TARGET=9.0
     ```
 
 - for QNX/aarch64, using the latest, installed SDK:
@@ -297,15 +297,29 @@ At the end of SDL CMake configuration, a table shows all CMake options along wit
 | `-DSDL_DISABLE_INSTALL_DOCS=` | `ON`/`OFF`   | Don't install the SDL documentation                                                                 |
 | `-DSDL_INSTALL_TESTS=`        | `ON`/`OFF`   | Install the SDL test programs                                                                       |
 
+### Incompatibilities
+
+#### `SDL_LIBC=OFF` and sanitizers
+
+Building with `-DSDL_LIBC=OFF` will make it impossible to use the sanitizer, such as the address sanitizer.
+Configure your project with `-DSDL_LIBC=ON` to make use of sanitizers.
+
 ## CMake FAQ
+
+### CMake fails to build without X11 or Wayland support
+
+Install the required system packages prior to running CMake.
+See [README-linux](linux#build-dependencies) for the list of dependencies on Linux.
+Other unix operationg systems should provide similar packages.
+
+If you **really** don't need to show windows, add `-DSDL_UNIX_CONSOLE_BUILD=ON` to the CMake configure command.
 
 ### How do I copy a SDL3 dynamic library to another location?
 
 Use [CMake generator expressions](https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html#target-dependent-expressions).
 Generator expressions support multiple configurations, and are evaluated during build system generation time.
 
-On Windows, the following example this copies `SDL3.dll` to the directory where `mygame.exe` is built.
-On Unix systems, `$<TARGET_FILE:...>` will refer to the dynamic library (or framework).
+On Windows, the following example copies `SDL3.dll` to the directory where `mygame.exe` is built.
 ```cmake
 if(WIN32)
     add_custom_command(
@@ -315,6 +329,12 @@ if(WIN32)
     )
 endif()
 ```
+On Unix systems, `$<TARGET_FILE:...>` will refer to the dynamic library (or framework),
+and you might need to use `$<TARGET_SONAME_FILE:tgt>` instead.
+
+Most often, you can avoid copying libraries by configuring your project with absolute [`CMAKE_LIBRARY_OUTPUT_DIRECTORY`](https://cmake.org/cmake/help/latest/variable/CMAKE_LIBRARY_OUTPUT_DIRECTORY.html)
+and [`CMAKE_RUNTIME_OUTPUT_DIRECTORY`](https://cmake.org/cmake/help/latest/variable/CMAKE_RUNTIME_OUTPUT_DIRECTORY.html) paths.
+When using a multi-config generator (such as Visual Studio or Ninja Multi-Config), eventually add `/$<CONFIG>` to both paths.
 
 ### Linking against a static SDL library fails due to relocation errors
 

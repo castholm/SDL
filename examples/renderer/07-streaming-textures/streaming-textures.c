@@ -22,19 +22,21 @@ static SDL_Texture *texture = NULL;
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
+    SDL_SetAppMetadata("Example Renderer Streaming Textures", "1.0", "com.example.renderer-streaming-textures");
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't initialize SDL!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     if (!SDL_CreateWindowAndRenderer("examples/renderer/streaming-textures", WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't create window/renderer!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
     if (!texture) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't create streaming texture!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't create streaming texture: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -81,7 +83,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     }
 
     /* as you can see from this, rendering draws over whatever was drawn before it. */
-    SDL_SetRenderDrawColor(renderer, 66, 66, 66, 255);  /* grey, full alpha */
+    SDL_SetRenderDrawColor(renderer, 66, 66, 66, SDL_ALPHA_OPAQUE);  /* grey, full alpha */
     SDL_RenderClear(renderer);  /* start with a blank canvas. */
 
     /* Just draw the static texture a few times. You can think of it like a

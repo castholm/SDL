@@ -52,6 +52,9 @@ static SDL_JoystickDriver *SDL_joystick_drivers[] = {
 #ifdef SDL_JOYSTICK_HIDAPI // Highest priority driver for supported devices
     &SDL_HIDAPI_JoystickDriver,
 #endif
+#ifdef SDL_JOYSTICK_PRIVATE
+    &SDL_PRIVATE_JoystickDriver,
+#endif
 #ifdef SDL_JOYSTICK_GAMEINPUT // Higher priority than other Windows drivers
     &SDL_GAMEINPUT_JoystickDriver,
 #endif
@@ -888,9 +891,6 @@ static bool IsROGAlly(SDL_Joystick *joystick)
 
 static bool ShouldAttemptSensorFusion(SDL_Joystick *joystick, bool *invert_sensors)
 {
-    const char *hint;
-    int hint_value;
-
     SDL_AssertJoysticksLocked();
 
     *invert_sensors = false;
@@ -905,30 +905,26 @@ static bool ShouldAttemptSensorFusion(SDL_Joystick *joystick, bool *invert_senso
         return false;
     }
 
-    hint = SDL_GetHint(SDL_HINT_GAMECONTROLLER_SENSOR_FUSION);
-    hint_value = SDL_GetStringInteger(hint, -1);
-    if (hint_value > 0) {
-        return true;
-    }
-    if (hint_value == 0) {
-        return false;
-    }
+    const char *hint = SDL_GetHint(SDL_HINT_GAMECONTROLLER_SENSOR_FUSION);
+    if (hint && *hint) {
+        if (*hint == '@' || SDL_strncmp(hint, "0x", 2) == 0) {
+            SDL_vidpid_list gamepads;
+            SDL_GUID guid;
+            Uint16 vendor, product;
+            bool enabled;
+            SDL_zero(gamepads);
 
-    if (hint) {
-        SDL_vidpid_list gamepads;
-        SDL_GUID guid;
-        Uint16 vendor, product;
-        bool enabled;
-        SDL_zero(gamepads);
-
-        // See if the gamepad is in our list of devices to enable
-        guid = SDL_GetJoystickGUID(joystick);
-        SDL_GetJoystickGUIDInfo(guid, &vendor, &product, NULL, NULL);
-        SDL_LoadVIDPIDListFromHints(&gamepads, hint, NULL);
-        enabled = SDL_VIDPIDInList(vendor, product, &gamepads);
-        SDL_FreeVIDPIDList(&gamepads);
-        if (enabled) {
-            return true;
+            // See if the gamepad is in our list of devices to enable
+            guid = SDL_GetJoystickGUID(joystick);
+            SDL_GetJoystickGUIDInfo(guid, &vendor, &product, NULL, NULL);
+            SDL_LoadVIDPIDListFromHints(&gamepads, hint, NULL);
+            enabled = SDL_VIDPIDInList(vendor, product, &gamepads);
+            SDL_FreeVIDPIDList(&gamepads);
+            if (enabled) {
+                return true;
+            }
+        } else {
+            return SDL_GetStringBoolean(hint, false);
         }
     }
 
@@ -3094,6 +3090,15 @@ bool SDL_IsJoystickNVIDIASHIELDController(Uint16 vendor_id, Uint16 product_id)
              product_id == USB_PRODUCT_NVIDIA_SHIELD_CONTROLLER_V104));
 }
 
+bool SDL_IsJoystickSteamVirtualGamepad(Uint16 vendor_id, Uint16 product_id, Uint16 version)
+{
+#ifdef SDL_PLATFORM_MACOS
+    return (vendor_id == USB_VENDOR_MICROSOFT && product_id == USB_PRODUCT_XBOX360_WIRED_CONTROLLER && version == 0);
+#else
+    return (vendor_id == USB_VENDOR_VALVE && product_id == USB_PRODUCT_STEAM_VIRTUAL_GAMEPAD);
+#endif
+}
+
 bool SDL_IsJoystickSteamController(Uint16 vendor_id, Uint16 product_id)
 {
     EControllerType eType = GuessControllerType(vendor_id, product_id);
@@ -3231,24 +3236,19 @@ static SDL_JoystickType SDL_GetJoystickGUIDType(SDL_GUID guid)
     return SDL_JOYSTICK_TYPE_UNKNOWN;
 }
 
-bool SDL_ShouldIgnoreJoystick(const char *name, SDL_GUID guid)
+bool SDL_ShouldIgnoreJoystick(Uint16 vendor_id, Uint16 product_id, Uint16 version, const char *name)
 {
-    Uint16 vendor;
-    Uint16 product;
-
-    SDL_GetJoystickGUIDInfo(guid, &vendor, &product, NULL, NULL);
-
     // Check the joystick blacklist
-    if (SDL_VIDPIDInList(vendor, product, &blacklist_devices)) {
+    if (SDL_VIDPIDInList(vendor_id, product_id, &blacklist_devices)) {
         return true;
     }
     if (!SDL_GetHintBoolean(SDL_HINT_JOYSTICK_ROG_CHAKRAM, false)) {
-        if (SDL_VIDPIDInList(vendor, product, &rog_gamepad_mice)) {
+        if (SDL_VIDPIDInList(vendor_id, product_id, &rog_gamepad_mice)) {
             return true;
         }
     }
 
-    if (SDL_ShouldIgnoreGamepad(name, guid)) {
+    if (SDL_ShouldIgnoreGamepad(vendor_id, product_id, version, name)) {
         return true;
     }
 

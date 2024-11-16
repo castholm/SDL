@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 55;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXAggregateTarget section */
@@ -43,7 +43,7 @@
 		000080903BC03006F24E0000 /* SDL_filesystem.c in Sources */ = {isa = PBXBuildFile; fileRef = 00002B010DB1A70931C20000 /* SDL_filesystem.c */; };
 		000095FA1BDE436CF3AF0000 /* SDL_time.c in Sources */ = {isa = PBXBuildFile; fileRef = 0000641A9BAC11AB3FBE0000 /* SDL_time.c */; };
 		000098E9DAA43EF6FF7F0000 /* SDL_camera.c in Sources */ = {isa = PBXBuildFile; fileRef = 0000035D38C3899C7EFD0000 /* SDL_camera.c */; };
-		0000A4DA2F45A31DC4F00000 /* SDL_sysmain_callbacks.m in Sources */ = {isa = PBXBuildFile; fileRef = 0000BB287BA0A0178C1A0000 /* SDL_sysmain_callbacks.m */; platformFilters = (ios, maccatalyst, macos, tvos, watchos, ); };
+		0000A4DA2F45A31DC4F00000 /* SDL_sysmain_callbacks.m in Sources */ = {isa = PBXBuildFile; fileRef = 0000BB287BA0A0178C1A0000 /* SDL_sysmain_callbacks.m */; };
 		0000D5B526B85DE7AB1C0000 /* SDL_cocoapen.m in Sources */ = {isa = PBXBuildFile; fileRef = 0000CCA310B73A7B59910000 /* SDL_cocoapen.m */; };
 		007317A40858DECD00B2BC32 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0073179D0858DECD00B2BC32 /* Cocoa.framework */; platformFilters = (macos, ); };
 		007317A60858DECD00B2BC32 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0073179F0858DECD00B2BC32 /* IOKit.framework */; platformFilters = (ios, maccatalyst, macos, ); };
@@ -421,8 +421,8 @@
 		F37A8E1A28405AA100C38E95 /* CMake in Resources */ = {isa = PBXBuildFile; fileRef = F37A8E1928405AA100C38E95 /* CMake */; };
 		F37E184E2B8C097D0098C111 /* SDL_camera.h in Headers */ = {isa = PBXBuildFile; fileRef = 000084ED0A56E3ED52F90000 /* SDL_camera.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F37E18522BA50E760098C111 /* SDL_dialog.h in Headers */ = {isa = PBXBuildFile; fileRef = F37E18512BA50E750098C111 /* SDL_dialog.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		F37E18582BA50F3B0098C111 /* SDL_cocoadialog.m in Sources */ = {isa = PBXBuildFile; fileRef = F37E18572BA50F3B0098C111 /* SDL_cocoadialog.m */; platformFilters = (macos, ); };
-		F37E185A2BA50F450098C111 /* SDL_dummydialog.c in Sources */ = {isa = PBXBuildFile; fileRef = F37E18592BA50F450098C111 /* SDL_dummydialog.c */; platformFilters = (ios, maccatalyst, tvos, xros, ); };
+		F37E18582BA50F3B0098C111 /* SDL_cocoadialog.m in Sources */ = {isa = PBXBuildFile; fileRef = F37E18572BA50F3B0098C111 /* SDL_cocoadialog.m */; };
+		F37E185A2BA50F450098C111 /* SDL_dummydialog.c in Sources */ = {isa = PBXBuildFile; fileRef = F37E18592BA50F450098C111 /* SDL_dummydialog.c */; };
 		F37E185C2BAA3EF90098C111 /* SDL_time.h in Headers */ = {isa = PBXBuildFile; fileRef = F37E185B2BAA3EF90098C111 /* SDL_time.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F37E18622BAA40090098C111 /* SDL_sysfilesystem.h in Headers */ = {isa = PBXBuildFile; fileRef = F37E18612BAA40090098C111 /* SDL_sysfilesystem.h */; };
 		F37E18642BAA40670098C111 /* SDL_time_c.h in Headers */ = {isa = PBXBuildFile; fileRef = F37E18632BAA40670098C111 /* SDL_time_c.h */; };
@@ -1049,6 +1049,7 @@
 		F3F528C82C29E1C300E6CC26 /* s_isnan.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = s_isnan.c; sourceTree = "<group>"; };
 		F3F528C92C29E1C300E6CC26 /* s_modf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = s_modf.c; sourceTree = "<group>"; };
 		F3F528CA2C29E1C300E6CC26 /* s_isinff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = s_isinff.c; sourceTree = "<group>"; };
+		F3F7BE3B2CBD79D200C984AF /* config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = config.xcconfig; sourceTree = "<group>"; };
 		F3F7D8AA2933074900816151 /* SDL_audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDL_audio.h; path = SDL3/SDL_audio.h; sourceTree = "<group>"; };
 		F3F7D8AB2933074900816151 /* SDL_platform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDL_platform.h; path = SDL3/SDL_platform.h; sourceTree = "<group>"; };
 		F3F7D8AC2933074900816151 /* SDL_stdinc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDL_stdinc.h; path = SDL3/SDL_stdinc.h; sourceTree = "<group>"; };
@@ -1314,6 +1315,7 @@
 		0867D691FE84028FC02AAC07 /* SDLFramework */ = {
 			isa = PBXGroup;
 			children = (
+				F3F7BE3B2CBD79D200C984AF /* config.xcconfig */,
 				F5A2EF3900C6A39A01000001 /* BUGS.txt */,
 				F59C70FC00D5CB5801000001 /* pkg-support */,
 				0153844A006D81B07F000001 /* Public Headers */,
@@ -2793,7 +2795,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -ex\n\nmkdir -p build/dmg-tmp/share/cmake/SDL3\ncp -a build/SDL3.xcframework build/dmg-tmp/\n\ncp pkg-support/resources/License.txt build/dmg-tmp\ncp pkg-support/resources/ReadMe.txt build/dmg-tmp\ncp pkg-support/resources/share/cmake/SDL3/sdl3-config.cmake build/dmg-tmp/share/cmake/SDL3\ncp pkg-support/resources/share/cmake/SDL3/sdl3-config-version.cmake build/dmg-tmp/share/cmake/SDL3\n\n# remove the .DS_Store files if any (we may want to provide one in the future for fancy .dmgs)\nfind build/dmg-tmp -name .DS_Store -exec rm -f \"{}\" \\;\n\n# for fancy .dmg\nmkdir -p build/dmg-tmp/.logo\ncp pkg-support/resources/SDL_DS_Store build/dmg-tmp/.DS_Store\ncp pkg-support/sdl_logo.pdf build/dmg-tmp/.logo\n\n# create the dmg\nhdiutil create -ov -fs HFS+ -volname SDL3 -srcfolder build/dmg-tmp build/SDL3.dmg\n\n# clean up\nrm -rf build/dmg-tmp\n";
+			shellScript = "set -ex\n\nmkdir -p build/dmg-tmp/share/cmake/SDL3\ncp -a build/SDL3.xcframework build/dmg-tmp/\n\ncp pkg-support/resources/License.txt build/dmg-tmp\ncp pkg-support/resources/ReadMe.txt build/dmg-tmp\ncp pkg-support/share/cmake/SDL3/SDL3Config.cmake build/dmg-tmp/share/cmake/SDL3\ncp pkg-support/share/cmake/SDL3/SDL3ConfigVersion.cmake build/dmg-tmp/share/cmake/SDL3\n\n# remove the .DS_Store files if any (we may want to provide one in the future for fancy .dmgs)\nfind build/dmg-tmp -name .DS_Store -exec rm -f \"{}\" \\;\n\n# for fancy .dmg\nmkdir -p build/dmg-tmp/.logo\ncp pkg-support/resources/SDL_DS_Store build/dmg-tmp/.DS_Store\ncp pkg-support/sdl_logo.pdf build/dmg-tmp/.logo\n\n# create the dmg\nhdiutil create -ov -fs HFS+ -volname SDL3 -srcfolder build/dmg-tmp build/SDL3.dmg\n\n# clean up\nrm -rf build/dmg-tmp\n";
 		};
 		F3B38CF0296F63D1005DA6D3 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -3079,8 +3081,8 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				DEPLOYMENT_POSTPROCESSING = YES;
-				DYLIB_COMPATIBILITY_VERSION = 104.0.0;
-				DYLIB_CURRENT_VERSION = 104.0.0;
+				DYLIB_COMPATIBILITY_VERSION = 107.0.0;
+				DYLIB_CURRENT_VERSION = 107.0.0;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_ALTIVEC_EXTENSIONS = YES;
@@ -3089,6 +3091,7 @@
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_PREPROCESSOR_DEFINITIONS = "$(CONFIG_PREPROCESSOR_DEFINITIONS)";
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				HEADER_SEARCH_PATHS = (
 					../../include,
@@ -3111,7 +3114,8 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				MARKETING_VERSION = 3.1.3;
+				MARKETING_VERSION = 3.1.6;
+				OTHER_LDFLAGS = "$(CONFIG_FRAMEWORK_LDFLAGS)";
 				PRODUCT_BUNDLE_IDENTIFIER = org.libsdl.SDL3;
 				PRODUCT_NAME = SDL3;
 				STRIP_STYLE = "non-global";
@@ -3124,6 +3128,7 @@
 		};
 		00CFA622106A567900758660 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F3F7BE3B2CBD79D200C984AF /* config.xcconfig */;
 			buildSettings = {
 				CLANG_LINK_OBJC_RUNTIME = NO;
 				OTHER_LDFLAGS = "-liconv";
@@ -3137,8 +3142,8 @@
 				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
-				DYLIB_COMPATIBILITY_VERSION = 104.0.0;
-				DYLIB_CURRENT_VERSION = 104.0.0;
+				DYLIB_COMPATIBILITY_VERSION = 107.0.0;
+				DYLIB_CURRENT_VERSION = 107.0.0;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -3147,6 +3152,7 @@
 				GCC_ENABLE_SSE3_EXTENSIONS = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = "$(CONFIG_PREPROCESSOR_DEFINITIONS)";
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				HEADER_SEARCH_PATHS = (
 					../../include,
@@ -3169,8 +3175,9 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				MARKETING_VERSION = 3.1.3;
+				MARKETING_VERSION = 3.1.6;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "$(CONFIG_FRAMEWORK_LDFLAGS)";
 				PRODUCT_BUNDLE_IDENTIFIER = org.libsdl.SDL3;
 				PRODUCT_NAME = SDL3;
 				STRIP_INSTALLED_PRODUCT = NO;
@@ -3183,6 +3190,7 @@
 		};
 		00CFA628106A568900758660 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F3F7BE3B2CBD79D200C984AF /* config.xcconfig */;
 			buildSettings = {
 				CLANG_LINK_OBJC_RUNTIME = NO;
 				OTHER_LDFLAGS = "-liconv";

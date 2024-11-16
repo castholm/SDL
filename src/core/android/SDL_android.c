@@ -1377,7 +1377,8 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeAccel)(
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeClipboardChanged)(
     JNIEnv *env, jclass jcls)
 {
-    SDL_SendClipboardUpdate();
+    // TODO: compute new mime types
+    SDL_SendClipboardUpdate(false, NULL, 0);
 }
 
 // Low memory
@@ -2399,7 +2400,7 @@ const char *SDL_GetAndroidCachePath(void)
 
         // fileObj = context.getExternalFilesDir();
         mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, context),
-                                  "getCacheDir", "(Ljava/lang/String;)Ljava/io/File;");
+                                  "getCacheDir", "()Ljava/io/File;");
         fileObject = (*env)->CallObjectMethod(env, context, mid, NULL);
         if (!fileObject) {
             SDL_SetError("Couldn't get cache directory");

@@ -237,6 +237,48 @@ static DXGI_FORMAT SDLToD3D11_TextureFormat[] = {
     DXGI_FORMAT_D32_FLOAT,            // D32_FLOAT
     DXGI_FORMAT_D24_UNORM_S8_UINT,    // D24_UNORM_S8_UINT
     DXGI_FORMAT_D32_FLOAT_S8X24_UINT, // D32_FLOAT_S8_UINT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_4x4_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_5x4_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_5x5_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_6x5_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_6x6_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_8x5_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_8x6_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_8x8_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x5_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x6_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x8_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x10_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_12x10_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_12x12_UNORM
+    DXGI_FORMAT_UNKNOWN,              // ASTC_4x4_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_5x4_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_5x5_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_6x5_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_6x6_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_8x5_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_8x6_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_8x8_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x5_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x6_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x8_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x10_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_12x10_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_12x12_UNORM_SRGB
+    DXGI_FORMAT_UNKNOWN,              // ASTC_4x4_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_5x4_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_5x5_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_6x5_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_6x6_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_8x5_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_8x6_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_8x8_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x5_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x6_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x8_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_10x10_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_12x10_FLOAT
+    DXGI_FORMAT_UNKNOWN,              // ASTC_12x12_FLOAT
 };
 SDL_COMPILE_TIME_ASSERT(SDLToD3D11_TextureFormat, SDL_arraysize(SDLToD3D11_TextureFormat) == SDL_GPU_TEXTUREFORMAT_MAX_ENUM_VALUE);
 
@@ -706,7 +748,7 @@ typedef struct D3D11CommandBuffer
 
     // Fences
     D3D11Fence *fence;
-    Uint8 autoReleaseFence;
+    bool autoReleaseFence;
 
     // Reference Counting
     D3D11Buffer **usedBuffers;
@@ -2656,10 +2698,11 @@ static void D3D11_UploadToTexture(
         destination->mip_level,
         cycle);
 
-    Sint32 blockSize = Texture_GetBlockSize(dstFormat);
-    if (blockSize > 1) {
-        w = (w + blockSize - 1) & ~(blockSize - 1);
-        h = (h + blockSize - 1) & ~(blockSize - 1);
+    Sint32 blockWidth = Texture_GetBlockWidth(dstFormat);
+    Sint32 blockHeight = Texture_GetBlockHeight(dstFormat);
+    if (blockWidth > 1 && blockHeight > 1) {
+        w = (w + blockWidth - 1) & ~(blockWidth - 1);
+        h = (h + blockHeight - 1) & ~(blockHeight - 1);
     }
 
     if (bufferStride == 0) {
@@ -3237,14 +3280,9 @@ static SDL_GPUCommandBuffer *D3D11_AcquireCommandBuffer(
     SDL_zeroa(commandBuffer->computeReadWriteStorageTextureSubresources);
     SDL_zeroa(commandBuffer->computeReadWriteStorageBuffers);
 
-    bool acquireFenceResult = D3D11_INTERNAL_AcquireFence(commandBuffer);
-    commandBuffer->autoReleaseFence = 1;
+    commandBuffer->autoReleaseFence = true;
 
     SDL_UnlockMutex(renderer->acquireCommandBufferLock);
-
-    if (!acquireFenceResult) {
-        return NULL;
-    }
 
     return (SDL_GPUCommandBuffer *)commandBuffer;
 }
@@ -4763,7 +4801,8 @@ static bool D3D11_INTERNAL_MapAndCopyTextureDownload(
 
 static bool D3D11_INTERNAL_CleanCommandBuffer(
     D3D11Renderer *renderer,
-    D3D11CommandBuffer *commandBuffer)
+    D3D11CommandBuffer *commandBuffer,
+    bool cancel)
 {
     Uint32 i, j;
     bool result = true;
@@ -4774,17 +4813,21 @@ static bool D3D11_INTERNAL_CleanCommandBuffer(
         D3D11TransferBuffer *transferBuffer = commandBuffer->usedTransferBuffers[i];
 
         for (j = 0; j < transferBuffer->bufferDownloadCount; j += 1) {
-            result &= D3D11_INTERNAL_MapAndCopyBufferDownload(
-                renderer,
-                transferBuffer,
-                &transferBuffer->bufferDownloads[j]);
+            if (!cancel) {
+                result &= D3D11_INTERNAL_MapAndCopyBufferDownload(
+                    renderer,
+                    transferBuffer,
+                    &transferBuffer->bufferDownloads[j]);
+            }
         }
 
         for (j = 0; j < transferBuffer->textureDownloadCount; j += 1) {
-            result &= D3D11_INTERNAL_MapAndCopyTextureDownload(
-                renderer,
-                transferBuffer,
-                &transferBuffer->textureDownloads[j]);
+            if (!cancel) {
+                result &= D3D11_INTERNAL_MapAndCopyTextureDownload(
+                    renderer,
+                    transferBuffer,
+                    &transferBuffer->textureDownloads[j]);
+            }
         }
 
         transferBuffer->bufferDownloadCount = 0;
@@ -4844,10 +4887,12 @@ static bool D3D11_INTERNAL_CleanCommandBuffer(
     SDL_UnlockMutex(renderer->acquireCommandBufferLock);
 
     // Remove this command buffer from the submitted list
-    for (i = 0; i < renderer->submittedCommandBufferCount; i += 1) {
-        if (renderer->submittedCommandBuffers[i] == commandBuffer) {
-            renderer->submittedCommandBuffers[i] = renderer->submittedCommandBuffers[renderer->submittedCommandBufferCount - 1];
-            renderer->submittedCommandBufferCount -= 1;
+    if (!cancel) {
+        for (i = 0; i < renderer->submittedCommandBufferCount; i += 1) {
+            if (renderer->submittedCommandBuffers[i] == commandBuffer) {
+                renderer->submittedCommandBuffers[i] = renderer->submittedCommandBuffers[renderer->submittedCommandBufferCount - 1];
+                renderer->submittedCommandBufferCount -= 1;
+            }
         }
     }
 
@@ -4981,7 +5026,8 @@ static bool D3D11_WaitForFences(
         if (res == S_OK) {
             result &= D3D11_INTERNAL_CleanCommandBuffer(
                 renderer,
-                renderer->submittedCommandBuffers[i]);
+                renderer->submittedCommandBuffers[i],
+                false);
         }
     }
 
@@ -5227,9 +5273,8 @@ static bool D3D11_INTERNAL_CreateSwapchain(
         return false;
     }
 
-    int w, h;
-    SDL_SyncWindow(windowData->window);
-    SDL_GetWindowSizeInPixels(windowData->window, &w, &h);
+    res = IDXGISwapChain_GetDesc(swapchain, &swapchainDesc);
+    CHECK_D3D11_ERROR_AND_RETURN("Failed to get swapchain descriptor!", false);
 
     // Initialize dummy container, width/height will be filled out in AcquireSwapchainTexture
     SDL_zerop(&windowData->textureContainer);
@@ -5246,14 +5291,14 @@ static bool D3D11_INTERNAL_CreateSwapchain(
     windowData->textureContainer.header.info.num_levels = 1;
     windowData->textureContainer.header.info.sample_count = SDL_GPU_SAMPLECOUNT_1;
     windowData->textureContainer.header.info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-    windowData->textureContainer.header.info.width = w;
-    windowData->textureContainer.header.info.height = h;
+    windowData->textureContainer.header.info.width = swapchainDesc.BufferDesc.Width;
+    windowData->textureContainer.header.info.height = swapchainDesc.BufferDesc.Height;
 
     windowData->texture.container = &windowData->textureContainer;
     windowData->texture.containerIndex = 0;
 
-    windowData->width = w;
-    windowData->height = h;
+    windowData->width = swapchainDesc.BufferDesc.Width;
+    windowData->height = swapchainDesc.BufferDesc.Height;
     return true;
 }
 
@@ -5268,16 +5313,12 @@ static bool D3D11_INTERNAL_ResizeSwapchain(
     SDL_free(windowData->texture.subresources[0].colorTargetViews);
     SDL_free(windowData->texture.subresources);
 
-    int w, h;
-    SDL_SyncWindow(windowData->window);
-    SDL_GetWindowSizeInPixels(windowData->window, &w, &h);
-
     // Resize the swapchain
     HRESULT res = IDXGISwapChain_ResizeBuffers(
         windowData->swapchain,
         0, // Keep buffer count the same
-        w,
-        h,
+        0, // Use client window width
+        0, // Use client window height
         DXGI_FORMAT_UNKNOWN, // Keep the old format
         renderer->supportsTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
     CHECK_D3D11_ERROR_AND_RETURN("Could not resize swapchain buffers", false);
@@ -5290,10 +5331,14 @@ static bool D3D11_INTERNAL_ResizeSwapchain(
         (windowData->swapchainComposition == SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR) ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : windowData->swapchainFormat,
         &windowData->texture);
 
-    windowData->textureContainer.header.info.width = w;
-    windowData->textureContainer.header.info.height = h;
-    windowData->width = w;
-    windowData->height = h;
+    DXGI_SWAP_CHAIN_DESC swapchainDesc;
+    res = IDXGISwapChain_GetDesc(windowData->swapchain, &swapchainDesc);
+    CHECK_D3D11_ERROR_AND_RETURN("Failed to get swapchain descriptor!", false);
+
+    windowData->textureContainer.header.info.width = swapchainDesc.BufferDesc.Width;
+    windowData->textureContainer.header.info.height = swapchainDesc.BufferDesc.Height;
+    windowData->width = swapchainDesc.BufferDesc.Width;
+    windowData->height = swapchainDesc.BufferDesc.Height;
     windowData->needsSwapchainRecreate = !result;
     return result;
 }
@@ -5654,6 +5699,11 @@ static bool D3D11_Submit(
 
     SDL_LockMutex(renderer->contextLock);
 
+    if (!D3D11_INTERNAL_AcquireFence(d3d11CommandBuffer)) {
+        SDL_UnlockMutex(renderer->contextLock);
+        return false;
+    }
+
     // Notify the command buffer completion query that we have completed recording
     ID3D11DeviceContext_End(
         renderer->immediateContext,
@@ -5736,7 +5786,8 @@ static bool D3D11_Submit(
         if (res == S_OK) {
             result &= D3D11_INTERNAL_CleanCommandBuffer(
                 renderer,
-                renderer->submittedCommandBuffers[i]);
+                renderer->submittedCommandBuffers[i],
+                false);
         }
     }
 
@@ -5751,12 +5802,26 @@ static SDL_GPUFence *D3D11_SubmitAndAcquireFence(
     SDL_GPUCommandBuffer *commandBuffer)
 {
     D3D11CommandBuffer *d3d11CommandBuffer = (D3D11CommandBuffer *)commandBuffer;
-    D3D11Fence *fence = d3d11CommandBuffer->fence;
+    d3d11CommandBuffer->autoReleaseFence = false;
+    if (!D3D11_Submit(commandBuffer)) {
+        return NULL;
+    }
+    return (SDL_GPUFence *)d3d11CommandBuffer->fence;
+}
 
-    d3d11CommandBuffer->autoReleaseFence = 0;
-    D3D11_Submit(commandBuffer);
+static bool D3D11_Cancel(
+    SDL_GPUCommandBuffer *commandBuffer)
+{
+    D3D11CommandBuffer *d3d11CommandBuffer = (D3D11CommandBuffer *)commandBuffer;
+    D3D11Renderer *renderer = d3d11CommandBuffer->renderer;
+    bool result;
 
-    return (SDL_GPUFence *)fence;
+    d3d11CommandBuffer->autoReleaseFence = false;
+    SDL_LockMutex(renderer->contextLock);
+    result = D3D11_INTERNAL_CleanCommandBuffer(renderer, d3d11CommandBuffer, true);
+    SDL_UnlockMutex(renderer->contextLock);
+
+    return result;
 }
 
 static bool D3D11_Wait(
@@ -5780,7 +5845,7 @@ static bool D3D11_Wait(
 
     for (Sint32 i = renderer->submittedCommandBufferCount - 1; i >= 0; i -= 1) {
         commandBuffer = renderer->submittedCommandBuffers[i];
-        result &= D3D11_INTERNAL_CleanCommandBuffer(renderer, commandBuffer);
+        result &= D3D11_INTERNAL_CleanCommandBuffer(renderer, commandBuffer, false);
     }
 
     D3D11_INTERNAL_PerformPendingDestroys(renderer);

@@ -36,13 +36,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
     int i;
 
+    SDL_SetAppMetadata("Example Renderer Points", "1.0", "com.example.renderer-points");
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't initialize SDL!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     if (!SDL_CreateWindowAndRenderer("examples/renderer/points", WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't create window/renderer!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -95,9 +97,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     last_time = now;
 
     /* as you can see from this, rendering draws over whatever was drawn before it. */
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);  /* black, full alpha */
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);  /* black, full alpha */
     SDL_RenderClear(renderer);  /* start with a blank canvas. */
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);  /* white, full alpha */
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);  /* white, full alpha */
     SDL_RenderPoints(renderer, points, SDL_arraysize(points));  /* draw all the points! */
 
     /* You can also draw single points with SDL_RenderPoint(), but it's

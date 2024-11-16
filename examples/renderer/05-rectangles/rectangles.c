@@ -19,13 +19,15 @@ static SDL_Renderer *renderer = NULL;
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
+    SDL_SetAppMetadata("Example Renderer Rectangles", "1.0", "com.example.renderer-rectangles");
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't initialize SDL!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     if (!SDL_CreateWindowAndRenderer("examples/renderer/rectangles", WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't create window/renderer!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -53,7 +55,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     const float scale = ((float) (((int) (now % 1000)) - 500) / 500.0f) * direction;
 
     /* as you can see from this, rendering draws over whatever was drawn before it. */
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);  /* black, full alpha */
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);  /* black, full alpha */
     SDL_RenderClear(renderer);  /* start with a blank canvas. */
 
     /* Rectangles are comprised of set of X and Y coordinates, plus width and
@@ -64,7 +66,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     /* Let's draw a single rectangle (square, really). */
     rects[0].x = rects[0].y = 100;
     rects[0].w = rects[0].h = 100 + (100 * scale);
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);  /* red, full alpha */
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);  /* red, full alpha */
     SDL_RenderRect(renderer, &rects[0]);
 
     /* Now let's draw several rectangles with one function call. */
@@ -74,7 +76,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         rects[i].x = (WINDOW_WIDTH - rects[i].w) / 2;  /* center it. */
         rects[i].y = (WINDOW_HEIGHT - rects[i].h) / 2;  /* center it. */
     }
-    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);  /* green, full alpha */
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);  /* green, full alpha */
     SDL_RenderRects(renderer, rects, 3);  /* draw three rectangles at once */
 
     /* those were rectangle _outlines_, really. You can also draw _filled_ rectangles! */
@@ -82,7 +84,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     rects[0].y = 50;
     rects[0].w = 100 + (100 * scale);
     rects[0].h = 50 + (50 * scale);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);  /* blue, full alpha */
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);  /* blue, full alpha */
     SDL_RenderFillRect(renderer, &rects[0]);
 
     /* ...and also fill a bunch of rectangles at once... */
@@ -94,7 +96,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         rects[i].w = w;
         rects[i].h = h;
     }
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);  /* white, full alpha */
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);  /* white, full alpha */
     SDL_RenderFillRects(renderer, rects, SDL_arraysize(rects));
 
     SDL_RenderPresent(renderer);  /* put it all on the screen! */

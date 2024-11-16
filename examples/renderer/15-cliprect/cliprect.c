@@ -32,13 +32,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     SDL_Surface *surface = NULL;
     char *bmp_path = NULL;
 
+    SDL_SetAppMetadata("Example Renderer Clipping Rectangle", "1.0", "com.example.renderer-cliprect");
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't initialize SDL!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     if (!SDL_CreateWindowAndRenderer("examples/renderer/cliprect", WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't create window/renderer!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -55,7 +57,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     SDL_asprintf(&bmp_path, "%ssample.bmp", SDL_GetBasePath());  /* allocate a string of the full file path */
     surface = SDL_LoadBMP(bmp_path);
     if (!surface) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't load bitmap!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't load bitmap: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -63,7 +65,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     if (!texture) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't create static texture!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't create static texture: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -114,7 +116,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     /* okay, now draw! */
 
     /* Note that SDL_RenderClear is _not_ affected by the clipping rectangle! */
-    SDL_SetRenderDrawColor(renderer, 33, 33, 33, 255);  /* grey, full alpha */
+    SDL_SetRenderDrawColor(renderer, 33, 33, 33, SDL_ALPHA_OPAQUE);  /* grey, full alpha */
     SDL_RenderClear(renderer);  /* start with a blank canvas. */
 
     /* stretch the texture across the entire window. Only the piece in the

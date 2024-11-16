@@ -358,7 +358,7 @@ static int SDLCALL stdlib_snprintf(void *arg)
         "Check result value, expected: %d, got: %d", (int)SDL_strlen(expected), result);
 
     if (sizeof(void *) >= 8) {
-        result = SDL_snprintf(text, sizeof(text), "%p", (void *)0x1ba07bddf60L);
+        result = SDL_snprintf(text, sizeof(text), "%p", (void *)SDL_SINT64_C(0x1ba07bddf60));
         expected = "0x1ba07bddf60";
         expected2 = "000001BA07BDDF60";
         expected3 = "000001ba07bddf60";
@@ -913,9 +913,11 @@ static int SDLCALL stdlib_aligned_alloc(void *arg)
         }
         SDLTest_AssertCheck(ptr != NULL, "Check output, expected non-NULL, got: %p", ptr);
         SDLTest_AssertCheck((((size_t)ptr) % alignment) == 0, "Check output, expected aligned pointer, actual offset: %"SIZE_FORMAT, (((size_t)ptr) % alignment));
-        SDLTest_AssertPass("Filling memory to alignment value");
-        SDL_memset(ptr, 0xAA, alignment);
-        SDL_aligned_free(ptr);
+        if (ptr != NULL) {
+            SDLTest_AssertPass("Filling memory to alignment value");
+            SDL_memset(ptr, 0xAA, alignment);
+            SDL_aligned_free(ptr);
+        }
     }
 
     return TEST_COMPLETED;

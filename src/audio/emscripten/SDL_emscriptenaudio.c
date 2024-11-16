@@ -40,6 +40,13 @@ static bool EMSCRIPTENAUDIO_PlayDevice(SDL_AudioDevice *device, const Uint8 *buf
 {
     const int framelen = SDL_AUDIO_FRAMESIZE(device->spec);
     MAIN_THREAD_EM_ASM({
+        /* Convert incoming buf pointer to a HEAPF32 offset. */
+        #ifdef __wasm64__
+        var buf = $0 / 4;
+        #else
+        var buf = $0 >>> 2;
+        #endif
+
         var SDL3 = Module['SDL3'];
         var numChannels = SDL3.audio_playback.currentPlaybackBuffer['numberOfChannels'];
         for (var c = 0; c < numChannels; ++c) {
@@ -49,7 +56,7 @@ static bool EMSCRIPTENAUDIO_PlayDevice(SDL_AudioDevice *device, const Uint8 *buf
             }
 
             for (var j = 0; j < $1; ++j) {
-                channelData[j] = HEAPF32[$0 + ((j*numChannels + c) << 2) >> 2];  // !!! FIXME: why are these shifts here?
+                channelData[j] = HEAPF32[buf + (j*numChannels + c)];
             }
         }
     }, buffer, buffer_size / framelen);
@@ -226,7 +233,7 @@ static bool EMSCRIPTENAUDIO_OpenDevice(SDL_AudioDevice *device)
                     if ((SDL3 === undefined) || (SDL3.audio_recording === undefined)) { return; }
                     audioProcessingEvent.outputBuffer.getChannelData(0).fill(0.0);
                     SDL3.audio_recording.currentRecordingBuffer = audioProcessingEvent.inputBuffer;
-                    dynCall('vi', $2, [$3]);
+                    dynCall('ii', $2, [$3]);
                 };
                 SDL3.audio_recording.mediaStreamNode.connect(SDL3.audio_recording.scriptProcessorNode);
                 SDL3.audio_recording.scriptProcessorNode.connect(SDL3.audioContext.destination);
@@ -242,7 +249,7 @@ static bool EMSCRIPTENAUDIO_OpenDevice(SDL_AudioDevice *device)
             SDL3.audio_recording.silenceBuffer.getChannelData(0).fill(0.0);
             var silence_callback = function() {
                 SDL3.audio_recording.currentRecordingBuffer = SDL3.audio_recording.silenceBuffer;
-                dynCall('vi', $2, [$3]);
+                dynCall('ii', $2, [$3]);
             };
 
             SDL3.audio_recording.silenceTimer = setInterval(silence_callback, ($1 / SDL3.audioContext.sampleRate) * 1000);
@@ -267,7 +274,7 @@ static bool EMSCRIPTENAUDIO_OpenDevice(SDL_AudioDevice *device)
                     SDL3.audio_playback.silenceBuffer = undefined;
                 }
                 SDL3.audio_playback.currentPlaybackBuffer = e['outputBuffer'];
-                dynCall('vi', $2, [$3]);
+                dynCall('ii', $2, [$3]);
             };
 
             SDL3.audio_playback.scriptProcessorNode['connect'](SDL3.audioContext['destination']);
@@ -285,7 +292,7 @@ static bool EMSCRIPTENAUDIO_OpenDevice(SDL_AudioDevice *device)
                     // the buffer that gets filled here just gets ignored, so the app can make progress
                     //  and/or avoid flooding audio queues until we can actually play audio.
                     SDL3.audio_playback.currentPlaybackBuffer = SDL3.audio_playback.silenceBuffer;
-                    dynCall('vi', $2, [$3]);
+                    dynCall('ii', $2, [$3]);
                     SDL3.audio_playback.currentPlaybackBuffer = undefined;
                 };
 

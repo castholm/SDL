@@ -56,32 +56,47 @@ struct SDL_WindowData
             struct xdg_surface *surface;
             union
             {
-                struct xdg_toplevel *toplevel;
                 struct
                 {
-                    struct xdg_popup *popup;
-                    struct xdg_positioner *positioner;
+                    struct xdg_toplevel *xdg_toplevel;
+                } toplevel;
+                struct
+                {
+                    struct xdg_popup *xdg_popup;
+                    struct xdg_positioner *xdg_positioner;
                 } popup;
-            } roleobj;
+            };
             bool initial_configure_seen;
         } xdg;
     } shell_surface;
     enum
     {
-        WAYLAND_SURFACE_UNKNOWN = 0,
-        WAYLAND_SURFACE_XDG_TOPLEVEL,
-        WAYLAND_SURFACE_XDG_POPUP,
-        WAYLAND_SURFACE_LIBDECOR,
-        WAYLAND_SURFACE_CUSTOM
+        WAYLAND_SHELL_SURFACE_TYPE_UNKNOWN = 0,
+        WAYLAND_SHELL_SURFACE_TYPE_XDG_TOPLEVEL,
+        WAYLAND_SHELL_SURFACE_TYPE_XDG_POPUP,
+        WAYLAND_SHELL_SURFACE_TYPE_LIBDECOR,
+        WAYLAND_SHELL_SURFACE_TYPE_CUSTOM
     } shell_surface_type;
     enum
     {
-        WAYLAND_SURFACE_STATUS_HIDDEN = 0,
-        WAYLAND_SURFACE_STATUS_WAITING_FOR_CONFIGURE,
-        WAYLAND_SURFACE_STATUS_WAITING_FOR_FRAME,
-        WAYLAND_SURFACE_STATUS_SHOW_PENDING,
-        WAYLAND_SURFACE_STATUS_SHOWN
-    } surface_status;
+        WAYLAND_SHELL_SURFACE_STATUS_HIDDEN = 0,
+        WAYLAND_SHELL_SURFACE_STATUS_WAITING_FOR_CONFIGURE,
+        WAYLAND_SHELL_SURFACE_STATUS_WAITING_FOR_FRAME,
+        WAYLAND_SHELL_SURFACE_STATUS_SHOW_PENDING,
+        WAYLAND_SHELL_SURFACE_STATUS_SHOWN
+    } shell_surface_status;
+    enum
+    {
+        WAYLAND_WM_CAPS_WINDOW_MENU = 0x01,
+        WAYLAND_WM_CAPS_MAXIMIZE = 0x02,
+        WAYLAND_WM_CAPS_FULLSCREEN = 0x04,
+        WAYLAND_WM_CAPS_MINIMIZE = 0x08,
+
+        WAYLAND_WM_CAPS_ALL = WAYLAND_WM_CAPS_WINDOW_MENU |
+                              WAYLAND_WM_CAPS_MAXIMIZE |
+                              WAYLAND_WM_CAPS_FULLSCREEN |
+                              WAYLAND_WM_CAPS_MINIMIZE
+    } wm_caps;
 
     struct wl_egl_window *egl_window;
     struct SDL_WaylandInput *keyboard_device;
@@ -165,7 +180,9 @@ struct SDL_WindowData
     Uint64 last_focus_event_time_ns;
     bool floating;
     bool suspended;
+    bool resizing;
     bool active;
+    bool drop_interactive_resizes;
     bool is_fullscreen;
     bool fullscreen_exclusive;
     bool drop_fullscreen_requests;
@@ -208,6 +225,7 @@ extern void Wayland_ShowWindowSystemMenu(SDL_Window *window, int x, int y);
 extern void Wayland_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window);
 extern bool Wayland_SuspendScreenSaver(SDL_VideoDevice *_this);
 extern bool Wayland_SetWindowIcon(SDL_VideoDevice *_this, SDL_Window *window, SDL_Surface *icon);
+extern float Wayland_GetWindowContentScale(SDL_VideoDevice *_this, SDL_Window *window);
 
 extern bool Wayland_SetWindowHitTest(SDL_Window *window, bool enabled);
 extern bool Wayland_FlashWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_FlashOperation operation);

@@ -26,29 +26,31 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     SDL_CameraID *devices = NULL;
     int devcount = 0;
 
+    SDL_SetAppMetadata("Example Camera Read and Draw", "1.0", "com.example.camera-read-and-draw");
+
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_CAMERA)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't initialize SDL!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     if (!SDL_CreateWindowAndRenderer("examples/camera/read-and-draw", 640, 480, 0, &window, &renderer)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't create window/renderer!", SDL_GetError(), NULL);
+        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     devices = SDL_GetCameras(&devcount);
     if (devices == NULL) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't enumerate camera devices!", SDL_GetError(), window);
+        SDL_Log("Couldn't enumerate camera devices: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     } else if (devcount == 0) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't find any camera devices!", "Please connect a camera and try again.", window);
+        SDL_Log("Couldn't find any camera devices! Please connect a camera and try again.");
         return SDL_APP_FAILURE;
     }
 
     camera = SDL_OpenCamera(devices[0], NULL);  // just take the first thing we see in any format it wants.
     SDL_free(devices);
     if (camera == NULL) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Couldn't open camera!", SDL_GetError(), window);
+        SDL_Log("Couldn't open camera: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
@@ -64,7 +66,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         SDL_Log("Camera use approved by user!");
     } else if (event->type == SDL_EVENT_CAMERA_DEVICE_DENIED) {
         SDL_Log("Camera use denied by user!");
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Camera permission denied!", "User denied access to the camera!", window);
         return SDL_APP_FAILURE;
     }
     return SDL_APP_CONTINUE;  /* carry on with the program! */
@@ -92,7 +93,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         SDL_ReleaseCameraFrame(camera, frame);
     }
 
-    SDL_SetRenderDrawColor(renderer, 0x99, 0x99, 0x99, 255);
+    SDL_SetRenderDrawColor(renderer, 0x99, 0x99, 0x99, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(renderer);
     if (texture) {  /* draw the latest camera frame, if available. */
         SDL_RenderTexture(renderer, texture, NULL, NULL);

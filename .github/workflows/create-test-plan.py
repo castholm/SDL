@@ -31,7 +31,7 @@ class JobOs(Enum):
     Ubuntu20_04 = "ubuntu-20.04"
     Ubuntu22_04 = "ubuntu-22.04"
     Ubuntu24_04 = "ubuntu-24.04"
-    Macos12 = "macos-12"
+    Macos13 = "macos-13"
 
 
 class SdlPlatform(Enum):
@@ -114,9 +114,10 @@ JOB_SPECS = {
     "msvc-gdk-x64": JobSpec(name="GDK (MSVC, x64)",                         os=JobOs.WindowsLatest, platform=SdlPlatform.Msvc,        artifact="SDL-VC-GDK",             msvc_arch=MsvcArch.X64,   msvc_project="VisualC-GDK/SDL.sln", gdk=True, no_cmake=True, ),
     "ubuntu-20.04": JobSpec(name="Ubuntu 20.04",                            os=JobOs.Ubuntu20_04,   platform=SdlPlatform.Linux,       artifact="SDL-ubuntu20.04", ),
     "ubuntu-22.04": JobSpec(name="Ubuntu 22.04",                            os=JobOs.Ubuntu22_04,   platform=SdlPlatform.Linux,       artifact="SDL-ubuntu22.04", ),
+    "steamrt-sniper": JobSpec(name="Steam Linux Runtime (Sniper)",          os=JobOs.UbuntuLatest,  platform=SdlPlatform.Linux,       artifact="SDL-slrsniper",          container="registry.gitlab.steamos.cloud/steamrt/sniper/sdk:beta", ),
     "ubuntu-intel-icx": JobSpec(name="Ubuntu 20.04 (Intel oneAPI)",         os=JobOs.Ubuntu20_04,   platform=SdlPlatform.Linux,       artifact="SDL-ubuntu20.04-oneapi", intel=IntelCompiler.Icx, ),
     "ubuntu-intel-icc": JobSpec(name="Ubuntu 20.04 (Intel Compiler)",       os=JobOs.Ubuntu20_04,   platform=SdlPlatform.Linux,       artifact="SDL-ubuntu20.04-icc",    intel=IntelCompiler.Icc, ),
-    "macos-framework-x64":  JobSpec(name="MacOS (Framework) (x64)",         os=JobOs.Macos12,       platform=SdlPlatform.MacOS,       artifact="SDL-macos-framework",    apple_framework=True,  apple_archs={AppleArch.Aarch64, AppleArch.X86_64, }, xcode=True, ),
+    "macos-framework-x64":  JobSpec(name="MacOS (Framework) (x64)",         os=JobOs.Macos13,       platform=SdlPlatform.MacOS,       artifact="SDL-macos-framework",    apple_framework=True,  apple_archs={AppleArch.Aarch64, AppleArch.X86_64, }, xcode=True, ),
     "macos-framework-arm64": JobSpec(name="MacOS (Framework) (arm64)",      os=JobOs.MacosLatest,   platform=SdlPlatform.MacOS,       artifact=None,                     apple_framework=True,  apple_archs={AppleArch.Aarch64, AppleArch.X86_64, }, ),
     "macos-gnu-arm64": JobSpec(name="MacOS (GNU prefix)",                   os=JobOs.MacosLatest,   platform=SdlPlatform.MacOS,       artifact="SDL-macos-arm64-gnu",    apple_framework=False, apple_archs={AppleArch.Aarch64, },  ),
     "ios": JobSpec(name="iOS (CMake & xcode)",                              os=JobOs.MacosLatest,   platform=SdlPlatform.Ios,         artifact="SDL-ios-arm64",          xcode=True, ),
@@ -406,46 +407,47 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
                     case MsvcArch.X64:
                         job.setup_libusb_arch = "x64"
         case SdlPlatform.Linux:
-            job.apt_packages.extend((
-                "gnome-desktop-testing",
-                "libasound2-dev",
-                "libpulse-dev",
-                "libaudio-dev",
-                "libjack-dev",
-                "libsndio-dev",
-                "libusb-1.0-0-dev",
-                "libx11-dev",
-                "libxext-dev",
-                "libxrandr-dev",
-                "libxcursor-dev",
-                "libxfixes-dev",
-                "libxi-dev",
-                "libxss-dev",
-                "libwayland-dev",
-                "libxkbcommon-dev",
-                "libdrm-dev",
-                "libgbm-dev",
-                "libgl1-mesa-dev",
-                "libgles2-mesa-dev",
-                "libegl1-mesa-dev",
-                "libdbus-1-dev",
-                "libibus-1.0-dev",
-                "libudev-dev",
-                "fcitx-libs-dev",
-            ))
+            if spec.name.startswith("Ubuntu"):
+                assert spec.os.value.startswith("ubuntu-")
+                job.apt_packages.extend((
+                    "gnome-desktop-testing",
+                    "libasound2-dev",
+                    "libpulse-dev",
+                    "libaudio-dev",
+                    "libjack-dev",
+                    "libsndio-dev",
+                    "libusb-1.0-0-dev",
+                    "libx11-dev",
+                    "libxext-dev",
+                    "libxrandr-dev",
+                    "libxcursor-dev",
+                    "libxfixes-dev",
+                    "libxi-dev",
+                    "libxss-dev",
+                    "libwayland-dev",
+                    "libxkbcommon-dev",
+                    "libdrm-dev",
+                    "libgbm-dev",
+                    "libgl1-mesa-dev",
+                    "libgles2-mesa-dev",
+                    "libegl1-mesa-dev",
+                    "libdbus-1-dev",
+                    "libibus-1.0-dev",
+                    "libudev-dev",
+                    "fcitx-libs-dev",
+                ))
+                ubuntu_year, ubuntu_month = [int(v) for v in spec.os.value.removeprefix("ubuntu-").split(".", 1)]
+                if ubuntu_year >= 22:
+                    job.apt_packages.extend(("libpipewire-0.3-dev", "libdecor-0-dev"))
+                job.apt_packages.extend((
+                    "libunwind-dev",  # For SDL_test memory tracking
+                ))
             if trackmem_symbol_names:
                 # older libunwind is slow
                 job.cmake_arguments.append("-DSDLTEST_TIMEOUT_MULTIPLIER=2")
-            job.apt_packages.extend((
-                "libunwind-dev",  # For SDL_test memory tracking
-            ))
             job.shared_lib = SharedLibType.SO_0
             job.static_lib = StaticLibType.A
             fpic = True
-            assert spec.os.value.startswith("ubuntu-")
-            ubuntu_year, ubuntu_month = [int(v) for v in spec.os.value.removeprefix("ubuntu-").split(".", 1)]
-            if ubuntu_year >= 22:
-                job.apt_packages.extend(("libpipewire-0.3-dev", "libdecor-0-dev"))
         case SdlPlatform.Ios | SdlPlatform.Tvos:
             job.brew_packages.extend([
                 "ninja",
@@ -463,6 +465,7 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
                     job.cmake_arguments.extend([
                         "-DCMAKE_SYSTEM_NAME=iOS",
                         "-DCMAKE_OSX_ARCHITECTURES=\"arm64\"",
+                        "-DCMAKE_OSX_DEPLOYMENT_TARGET=9.0",
                     ])
                 case SdlPlatform.Tvos:
                     if spec.xcode:
@@ -470,6 +473,7 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
                     job.cmake_arguments.extend([
                         "-DCMAKE_SYSTEM_NAME=tvOS",
                         "-DCMAKE_OSX_ARCHITECTURES=\"arm64\"",
+                        "-DCMAKE_OSX_DEPLOYMENT_TARGET=9.0",
                     ])
         case SdlPlatform.MacOS:
             if spec.apple_framework:
@@ -478,6 +482,7 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
                 job.test_pkg_config = False
                 job.cmake_arguments.extend((
                     "'-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64'",
+                    "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.11",
                     "-DSDL_FRAMEWORK=ON",
                 ))
                 job.shared_lib = SharedLibType.FRAMEWORK
@@ -485,6 +490,7 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
                 job.clang_tidy = True
                 job.cmake_arguments.extend((
                     "-DCMAKE_OSX_ARCHITECTURES=arm64",
+                    "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.11",
                     "-DCLANG_TIDY_BINARY=$(brew --prefix llvm)/bin/clang-tidy",
                 ))
                 job.shared_lib = SharedLibType.DYLIB
@@ -608,7 +614,7 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
             job.cmake_arguments.extend((
                 f"-DCMAKE_C_COMPILER={job.cc}",
                 f"-DCMAKE_CXX_COMPILER={job.cxx}",
-                "-DCMAKE_SYSTEM_NAME=Haiku",
+                "-DSDL_UNIX_CONSOLE_BUILD=ON",
             ))
             job.shared_lib = SharedLibType.SO_0
             job.static_lib = StaticLibType.A
@@ -621,6 +627,9 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
             job.apt_packages = []
             job.shared_lib = SharedLibType.SO_0
             job.static_lib = StaticLibType.A
+            job.cmake_arguments.extend((
+                "-DSDL_UNIX_CONSOLE_BUILD=ON",
+            ))
         case SdlPlatform.LoongArch64:
             job.run_tests = False
             job.cc = "${LOONGARCH64_CC}"
@@ -628,6 +637,7 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
             job.cmake_arguments.extend((
                 f"-DCMAKE_C_COMPILER={job.cc}",
                 f"-DCMAKE_CXX_COMPILER={job.cxx}",
+                "-DSDL_UNIX_CONSOLE_BUILD=ON",
                 "-DCMAKE_SYSTEM_NAME=Linux",
             ))
             job.shared_lib = SharedLibType.SO_0

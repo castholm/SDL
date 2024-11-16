@@ -82,16 +82,14 @@ struct SDL_VideoData
     struct xdg_wm_dialog_v1 *xdg_wm_dialog_v1;
     struct wp_alpha_modifier_v1 *wp_alpha_modifier_v1;
     struct xdg_toplevel_icon_manager_v1 *xdg_toplevel_icon_manager_v1;
-    struct kde_output_order_v1 *kde_output_order;
     struct frog_color_management_factory_v1 *frog_color_management_factory_v1;
     struct zwp_tablet_manager_v2 *tablet_manager;
 
     struct xkb_context *xkb_context;
     struct SDL_WaylandInput *input;
-    struct wl_list output_list;
-    struct wl_list output_order;
-
-    bool output_order_finalized;
+    SDL_DisplayData **output_list;
+    int output_count;
+    int output_max;
 
     int relative_mouse_mode;
     bool display_externally_owned;
@@ -115,7 +113,6 @@ struct SDL_DisplayData
     SDL_DisplayID display;
     SDL_VideoDisplay placeholder;
     int wl_output_done_count;
-    struct wl_list link;
 };
 
 // Needed here to get wl_surface declaration, fixes GitHub#4594

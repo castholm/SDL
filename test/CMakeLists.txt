@@ -148,7 +148,7 @@ macro(add_sdl_test_executable TARGET)
         set_property(TARGET ${TARGET} PROPERTY SDL_NONINTERACTIVE_TIMEOUT "${AST_NONINTERACTIVE_TIMEOUT}")
     endif()
     if(AST_NEEDS_RESOURCES)
-        if(PSP OR PS2)
+        if(PSP OR PS2 OR N3DS)
             add_custom_command(TARGET ${TARGET} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} ARGS -E make_directory $<TARGET_FILE_DIR:${TARGET}>/sdl-${TARGET}
                 COMMAND ${CMAKE_COMMAND} ARGS -E copy_if_different ${RESOURCE_FILES} $<TARGET_FILE_DIR:${TARGET}>/sdl-${TARGET})
@@ -493,47 +493,17 @@ if(PSP)
             ICON_PATH       NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH    NULL
-        )
-        add_custom_command(
-            TARGET ${APP} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-            $<TARGET_FILE_DIR:${ARG_TARGET}>/sdl-${APP}
-        )
-        add_custom_command(
-            TARGET ${APP} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E rename
-            $<TARGET_FILE_DIR:${ARG_TARGET}>/EBOOT.PBP
-            $<TARGET_FILE_DIR:${ARG_TARGET}>/sdl-${APP}/EBOOT.PBP
-        )
-        if(BUILD_PRX)
-            add_custom_command(
-                TARGET ${APP} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy
-                $<TARGET_FILE_DIR:${ARG_TARGET}>/${APP}
-                $<TARGET_FILE_DIR:${ARG_TARGET}>/sdl-${APP}/${APP}
-            )
-            add_custom_command(
-                TARGET ${APP} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E rename
-                $<TARGET_FILE_DIR:${ARG_TARGET}>/${APP}.prx
-                $<TARGET_FILE_DIR:${ARG_TARGET}>/sdl-${APP}/${APP}.prx
-            )
-        endif()
-        add_custom_command(
-            TARGET ${APP} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E remove
-            $<TARGET_FILE_DIR:${ARG_TARGET}>/PARAM.SFO
+            OUTPUT_DIR      $<TARGET_FILE_DIR:${APP}>/sdl-${APP}
         )
     endforeach()
 endif()
 
 if(N3DS)
-    set(ROMFS_DIR "${CMAKE_CURRENT_BINARY_DIR}/romfs")
-    file(COPY ${RESOURCE_FILES} DESTINATION "${ROMFS_DIR}")
-
     foreach(APP ${SDL_TEST_EXECUTABLES})
         get_target_property(TARGET_BINARY_DIR ${APP} BINARY_DIR)
+        set(ROMFS_DIR "${TARGET_BINARY_DIR}/sdl-${APP}")
         set(SMDH_FILE "${TARGET_BINARY_DIR}/${APP}.smdh")
+        file(MAKE_DIRECTORY ${ROMFS_DIR})
         ctr_generate_smdh("${SMDH_FILE}"
             NAME "SDL-${APP}"
             DESCRIPTION "SDL3 Test suite"
