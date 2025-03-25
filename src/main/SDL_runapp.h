@@ -18,31 +18,10 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_internal.h"
-#include "SDL_runapp.h"
 
-/* Most platforms that use/need SDL_main have their own SDL_RunApp() implementation.
- * If not, you can special case it here by appending || defined(__YOUR_PLATFORM__) */
-#if ( !defined(SDL_MAIN_NEEDED) && !defined(SDL_MAIN_AVAILABLE) ) || defined(SDL_PLATFORM_ANDROID)
+#ifndef SDL_runapp_h_
+#define SDL_runapp_h_
 
-int SDL_RunApp(int argc, char* argv[], SDL_main_func mainFunction, void * reserved)
-{
-    (void)reserved;
+int SDL_CallMain(int argc, char* argv[], SDL_main_func mainFunction);
 
-    return SDL_CallMain(argc, argv, mainFunction);
-}
-
-#endif
-
-int SDL_CallMain(int argc, char* argv[], SDL_main_func mainFunction)
-{
-    char dummyargv0[] = { 'S', 'D', 'L', '_', 'a', 'p', 'p', '\0' };
-    char *dummyargv[2] = { dummyargv0, NULL };
-
-    if (!argv || argc < 0) {
-        argc = 1;
-        argv = dummyargv;
-    }
-
-    return mainFunction(argc, argv);
-}
+#endif // SDL_runapp_h_

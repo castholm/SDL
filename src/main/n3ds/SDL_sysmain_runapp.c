@@ -25,24 +25,24 @@
 
 #include <3ds.h>
 
+#include "../SDL_runapp.h"
+
 int SDL_RunApp(int argc, char* argv[], SDL_main_func mainFunction, void * reserved)
 {
     int result;
+    (void)reserved;
+
     // init
     osSetSpeedupEnable(true);
     romfsInit();
 
     SDL_SetMainReady();
-    result = mainFunction(argc, argv);
+    result = SDL_CallMain(argc, argv, mainFunction);
 
     // quit
     romfsExit();
 
     return result;
 }
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
 
 #endif

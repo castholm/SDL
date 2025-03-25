@@ -22,6 +22,7 @@
 
 #ifdef SDL_PLATFORM_WIN32
 
+#include "../SDL_runapp.h"
 #include "../../core/windows/SDL_windows.h"
 
 /* Win32-specific SDL_RunApp(), which does most of the SDL_main work,
@@ -85,7 +86,7 @@ int MINGW32_FORCEALIGN SDL_RunApp(int _argc, char* _argv[], SDL_main_func mainFu
     SDL_SetMainReady();
 
     // Run the application main() code
-    result = mainFunction(argc, argv);
+    result = SDL_CallMain(argc, argv, mainFunction);
 
     // Free argv, to avoid memory leak
     for (i = 0; i < argc; ++i) {

@@ -21,6 +21,7 @@
 #include "SDL_internal.h"
 
 extern "C" {
+#include "../SDL_runapp.h"
 #include "../../core/gdk/SDL_gdk.h"
 #include "../../core/windows/SDL_windows.h"
 #include "../../events/SDL_events_c.h"
@@ -40,7 +41,7 @@ static BOOL OutOfMemory(void)
 /* Gets the arguments with GetCommandLine, converts them to argc and argv
    and calls SDL_main */
 extern "C"
-int SDL_RunApp(int, char**, SDL_main_func mainFunction, void *reserved)
+int SDL_RunApp(int, char**, SDL_main_func mainFunction, void *)
 {
     LPWSTR *argvw;
     char **argv;
@@ -111,7 +112,7 @@ int SDL_RunApp(int, char**, SDL_main_func mainFunction, void *reserved)
         }
 
         // Run the application main() code
-        result = mainFunction(argc, argv);
+        result = SDL_CallMain(argc, argv, mainFunction);
 
         GDK_UnregisterChangeNotifications();
 
