@@ -20,7 +20,7 @@
 */
 #include "SDL_internal.h"
 
-#ifdef SDL_PLATFORM_WIN32
+#ifdef SDL_PLATFORM_WINDOWS
 
 #include "../SDL_runapp.h"
 #include "../../core/windows/SDL_windows.h"
@@ -39,23 +39,25 @@ static int ErrorProcessingCommandLine(void)
     return -1;
 }
 
-int MINGW32_FORCEALIGN SDL_RunApp(int caller_argc, char* caller_argv[], SDL_main_func mainFunction, void * reserved)
+// If the provided argv is NULL (which it will be when using SDL_main), this function parses
+// the command-line string for the current process into an argv and uses that instead.
+// Otherwise, the provided argv is used as-is (since that's probably what the user wants).
+int SDL_CallMain(int caller_argc, char* caller_argv[], SDL_main_func mainFunction)
 {
     int result, argc;
     LPWSTR *argvw = NULL;
     char **argv = NULL;
-    (void)reserved;
 
     // Note that we need to be careful about how we allocate/free memory in this function. If the application calls
     // SDL_SetMemoryFunctions(), we can't rely on SDL_free() to use the same allocator after SDL_main() returns.
 
     if (!caller_argv || caller_argc < 0) {
-        // If the passed argv is NULL or argc is negative, the user expects SDL to get the command line arguments
+        // If the passed argv is NULL (or argc is negative), SDL should get the command-line arguments
         // using GetCommandLineW() and convert them to argc and argv before calling mainFunction().
 
-        // Because of how the Windows command line works, we know for sure that the buffer size required to store all
+        // Because of how the Windows command-line works, we know for sure that the buffer size required to store all
         // argument strings converted to UTF-8 (with null terminators) is guaranteed to be less than or equal to the
-        // size of the original command line string converted to UTF-8.
+        // size of the original command-line string converted to UTF-8.
         const int argdata_size = WideCharToMultiByte(CP_UTF8, 0, GetCommandLineW(), -1, NULL, 0, NULL, NULL); // Includes the null terminator
         if (!argdata_size) {
             result = ErrorProcessingCommandLine();
@@ -94,9 +96,7 @@ int MINGW32_FORCEALIGN SDL_RunApp(int caller_argc, char* caller_argv[], SDL_main
         caller_argv = argv;
     }
 
-    SDL_SetMainReady();
-
-    result = mainFunction(caller_argc, caller_argv); // No need for SDL_CallMain(); we already know that we have a valid argv
+    result = mainFunction(caller_argc, caller_argv);
 
 cleanup:
 
@@ -106,4 +106,18 @@ cleanup:
     return result;
 }
 
-#endif // SDL_PLATFORM_WIN32
+// GDK uses the same SDL_CallMain() implementation as desktop Windows but has its own SDL_RunApp() implementation.
+#ifndef SDL_PLATFORM_GDK
+
+int SDL_RunApp(int argc, char* argv[], SDL_main_func mainFunction, void * reserved)
+{
+    (void)reserved;
+
+    SDL_SetMainReady();
+
+    return SDL_CallMain(argc, argv, mainFunction);
+}
+
+#endif // !SDL_PLATFORM_GDK
+
+#endif // SDL_PLATFORM_WINDOWS

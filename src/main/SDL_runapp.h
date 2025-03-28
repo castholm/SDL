@@ -22,6 +22,11 @@
 #ifndef SDL_runapp_h_
 #define SDL_runapp_h_
 
+// Call the provided main function.
+// If the provided argv is non-NULL, SDL will pass it forward to mainFunction as-is.
+// If the provided argv is NULL, the behavior is platform-dependent.
+// SDL may try to get the command-line arguments for the current process and use those instead,
+// or it may fall back on a simple dummy argv.
 int SDL_CallMain(int argc, char* argv[], SDL_main_func mainFunction);
 
 #endif // SDL_runapp_h_

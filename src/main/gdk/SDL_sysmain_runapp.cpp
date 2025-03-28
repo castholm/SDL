@@ -31,74 +31,12 @@ extern "C" {
 #include <shellapi.h> // CommandLineToArgvW()
 #include <appnotify.h>
 
-static int OutOfMemory(void)
-{
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", "Out of memory - aborting", NULL);
-    return -1;
-}
-
-static int ErrorProcessingCommandLine(void)
-{
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", "Error processing command line arguments", NULL);
-    return -1;
-}
-
 extern "C"
-int SDL_RunApp(int caller_argc, char* caller_argv[], SDL_main_func mainFunction, void *)
+int SDL_RunApp(int argc, char* argv[], SDL_main_func mainFunction, void *)
 {
-    int result, argc;
-    LPWSTR *argvw = NULL;
-    char **argv = NULL;
+    int result;
     HRESULT hr;
     XTaskQueueHandle taskQueue;
-
-    // Note that we need to be careful about how we allocate/free memory in this function. If the application calls
-    // SDL_SetMemoryFunctions(), we can't rely on SDL_free() to use the same allocator after SDL_main() returns.
-
-    if (!caller_argv || caller_argc < 0) {
-        // If the passed argv is NULL or argc is negative, the user expects SDL to get the command line arguments
-        // using GetCommandLineW() and convert them to argc and argv before calling mainFunction().
-
-        // Because of how the Windows command line works, we know for sure that the buffer size required to store all
-        // argument strings converted to UTF-8 (with null terminators) is guaranteed to be less than or equal to the
-        // size of the original command line string converted to UTF-8.
-        const int argdata_size = WideCharToMultiByte(CP_UTF8, 0, GetCommandLineW(), -1, NULL, 0, NULL, NULL); // Includes the null terminator
-        if (!argdata_size) {
-            result = ErrorProcessingCommandLine();
-            goto cleanup;
-        }
-
-        argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
-        if (!argvw || argc < 0) {
-            result = OutOfMemory();
-            goto cleanup;
-        }
-
-        // Allocate argv followed by the argument string buffer as one contiguous allocation.
-        argv = (char **)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (argc + 1) * sizeof(*argv) + argdata_size);
-        if (!argv) {
-            result = OutOfMemory();
-            goto cleanup;
-        }
-        char *argdata = ((char *)argv) + (argc + 1) * sizeof(*argv);
-        int argdata_index = 0;
-
-        for (int i = 0; i < argc; ++i) {
-            const int bytes_written = WideCharToMultiByte(CP_UTF8, 0, argvw[i], -1, argdata + argdata_index, argdata_size - argdata_index, NULL, NULL);
-            if (!bytes_written) {
-                result = ErrorProcessingCommandLine();
-                goto cleanup;
-            }
-            argv[i] = argdata + argdata_index;
-            argdata_index += bytes_written;
-        }
-        argv[argc] = NULL;
-
-        argvw = NULL;
-
-        caller_argc = argc;
-        caller_argv = argv;
-    }
 
     // !!! FIXME: This function does not currently properly deinitialize GDK resources on failure.
 
@@ -130,7 +68,9 @@ int SDL_RunApp(int caller_argc, char* caller_argv[], SDL_main_func mainFunction,
             return -1;
         }
 
-        result = mainFunction(caller_argc, caller_argv); // No need for SDL_CallMain(); we already know that we have a valid argv
+        // The common Windows SDL_CallMain() implementation is responsible for handling the argv
+        // and substituting it with a new argv parsed from the command-line string, if needed.
+        result = SDL_CallMain(argc, argv, mainFunction);
 
         GDK_UnregisterChangeNotifications();
 
@@ -155,11 +95,6 @@ int SDL_RunApp(int caller_argc, char* caller_argv[], SDL_main_func mainFunction,
 #endif
         result = -1;
     }
-
-cleanup:
-
-    HeapFree(GetProcessHeap(), 0, argv);
-    LocalFree(argvw);
 
     return result;
 }
