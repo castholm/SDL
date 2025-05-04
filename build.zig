@@ -835,6 +835,10 @@ pub fn build(b: *std.Build) void {
                 .flags = sdl_c_flags.slice(),
                 .files = &sdl_uclibc_c_files,
             });
+            if (linux) sdl_mod.addCSourceFiles(.{
+                .flags = sdl_c_flags.slice(),
+                .files = &sdl_uclibc_c_files,
+            });
         },
         .dynamic => {
             std.debug.assert(!emscripten);
@@ -1096,6 +1100,9 @@ pub fn build(b: *std.Build) void {
                 "src/camera/pipewire/SDL_camera_pipewire.c",
                 "src/audio/pulseaudio/SDL_pulseaudio.c",
                 "src/audio/sndio/SDL_sndioaudio.c",
+
+                "src/render/SDL_d3dmath.c",
+
                 "src/video/x11/SDL_x11clipboard.c",
                 "src/video/x11/SDL_x11dyn.c",
                 "src/video/x11/SDL_x11events.c",
