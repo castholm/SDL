@@ -46,6 +46,7 @@ Target \\ Host|Windows|Linux|macOS
 `aarch64-windows-gnu`|🧪|🧪|🧪
 `x86_64-linux-gnu`|✅|✅|✅
 `aarch64-linux-gnu`|🧪|🧪|🧪
+`aarch64-linux-android`|✅|✅|✅
 `x86_64-macos-none`|❌|❌|🉑
 `aarch64-macos-none`|❌|❌|🉑
 `wasm32-emscripten-musl`|🉑|🉑|🉑
