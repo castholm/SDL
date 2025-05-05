@@ -61,13 +61,14 @@ pub fn build(b: *std.Build) void {
             windows = true;
         },
         .linux => {
-            linux = true;
-            if (b.lazyImport(@This(), "sdl_linux_deps")) |build_zig| {
-                linux_deps_values = LinuxDepsValues.fromBuildZig(b, build_zig);
-            }
             if (target.result.abi.isAndroid()) {
                 android = true;
                 linux = false;
+            } else {
+                linux = true;
+                if (b.lazyImport(@This(), "sdl_linux_deps")) |build_zig| {
+                    linux_deps_values = LinuxDepsValues.fromBuildZig(b, build_zig);
+                }
             }
         },
         .macos => {
@@ -90,11 +91,11 @@ pub fn build(b: *std.Build) void {
                 std.process.exit(1);
             }
         },
-        else => {
-            // if (target.result.abi.isAndroid()) {
-            //     android = true;
-            // }
-        },
+        else => {},
+    }
+
+    if (target.result.abi.isAndroid()) {
+        android = true;
     }
 
     const build_config_h: *std.Build.Step.ConfigHeader = build_config_h: {
