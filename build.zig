@@ -571,9 +571,9 @@ pub fn build(b: *std.Build) void {
     sdl_mod.addCMacro("SDL_BUILD_MINOR_VERSION", std.fmt.comptimePrint("{}", .{version.minor}));
     sdl_mod.addCMacro("SDL_BUILD_MICRO_VERSION", std.fmt.comptimePrint("{}", .{version.patch}));
     // // Add this to enable POSIX Spawn API
-    // if (linux or macos or android) {
-    //     sdl_mod.addCMacro("_POSIX_C_SOURCE", "200809L");
-    // }
+    if (android) {
+        sdl_mod.addCMacro("_GNU_SOURCE", "1");
+    }
     switch (sdl_lib.linkage.?) {
         .static => {
             sdl_mod.addCMacro("SDL_STATIC_LIB", "1");
