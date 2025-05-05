@@ -615,6 +615,9 @@ pub fn build(b: *std.Build) void {
     if (emscripten_system_include_path) |path| {
         sdl_mod.addSystemIncludePath(path);
     }
+    if (android) {
+        sdl_mod.addSystemIncludePath(.{ .cwd_relative = "/usr/include" });
+    }
 
     var sdl_c_flags: std.BoundedArray([]const u8, common_c_flags.len + 3) = .{};
     sdl_c_flags.appendSliceAssumeCapacity(&common_c_flags);
