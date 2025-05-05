@@ -735,8 +735,8 @@ pub fn build(b: *std.Build) void {
             "src/render/gpu/SDL_shaders_gpu.c",
             "src/render/opengl/SDL_render_gl.c",
             "src/render/opengl/SDL_shaders_gl.c",
-            "src/render/opengles2/SDL_render_gles2.c",
-            "src/render/opengles2/SDL_shaders_gles2.c",
+            // "src/render/opengles2/SDL_render_gles2.c",
+            // "src/render/opengles2/SDL_shaders_gles2.c",
             // "src/render/ps2/SDL_render_ps2.c",
             // "src/render/psp/SDL_render_psp.c",
             "src/render/software/SDL_blendfillrect.c",
@@ -1000,8 +1000,8 @@ pub fn build(b: *std.Build) void {
 
                 "src/gpu/vulkan/SDL_gpu_vulkan.c",
 
-                "src/render/opengles2/SDL_render_gles2.c",
-                "src/render/opengles2/SDL_shaders_gles2.c",
+                // "src/render/opengles2/SDL_render_gles2.c",
+                // "src/render/opengles2/SDL_shaders_gles2.c",
                 "src/render/vulkan/SDL_render_vulkan.c",
                 "src/render/vulkan/SDL_shaders_vulkan.c",
 
