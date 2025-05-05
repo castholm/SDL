@@ -570,10 +570,10 @@ pub fn build(b: *std.Build) void {
     sdl_mod.addCMacro("SDL_BUILD_MAJOR_VERSION", std.fmt.comptimePrint("{}", .{version.major}));
     sdl_mod.addCMacro("SDL_BUILD_MINOR_VERSION", std.fmt.comptimePrint("{}", .{version.minor}));
     sdl_mod.addCMacro("SDL_BUILD_MICRO_VERSION", std.fmt.comptimePrint("{}", .{version.patch}));
-    // Add this to enable POSIX Spawn API
-    if (linux or macos or android) {
-        sdl_mod.addCMacro("_POSIX_C_SOURCE", "200809L");
-    }
+    // // Add this to enable POSIX Spawn API
+    // if (linux or macos or android) {
+    //     sdl_mod.addCMacro("_POSIX_C_SOURCE", "200809L");
+    // }
     switch (sdl_lib.linkage.?) {
         .static => {
             sdl_mod.addCMacro("SDL_STATIC_LIB", "1");
@@ -591,6 +591,7 @@ pub fn build(b: *std.Build) void {
     sdl_mod.addConfigHeader(revision_h);
     sdl_mod.addIncludePath(b.path("include"));
     sdl_mod.addIncludePath(b.path("src"));
+    sdl_mod.addIncludePath(b.path("include/build_config"));
     sdl_mod.addSystemIncludePath(b.path("src/video/khronos"));
     if (linux_deps_values) |deps_values| {
         sdl_mod.addIncludePath(deps_values.dependency.path("src"));
