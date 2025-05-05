@@ -566,14 +566,10 @@ pub fn build(b: *std.Build) void {
     });
     sdl_lib.want_lto = lto;
 
-    // sdl_mod.addCMacro("USING_GENERATED_CONFIG_H", "1");
+    sdl_mod.addCMacro("USING_GENERATED_CONFIG_H", "1");
     sdl_mod.addCMacro("SDL_BUILD_MAJOR_VERSION", std.fmt.comptimePrint("{}", .{version.major}));
     sdl_mod.addCMacro("SDL_BUILD_MINOR_VERSION", std.fmt.comptimePrint("{}", .{version.minor}));
     sdl_mod.addCMacro("SDL_BUILD_MICRO_VERSION", std.fmt.comptimePrint("{}", .{version.patch}));
-    // // // Add this to enable POSIX Spawn API
-    // if (android) {
-    //     sdl_mod.addCMacro("_GNU_SOURCE", "1");
-    // }
     switch (sdl_lib.linkage.?) {
         .static => {
             sdl_mod.addCMacro("SDL_STATIC_LIB", "1");
@@ -614,9 +610,6 @@ pub fn build(b: *std.Build) void {
     }
     if (emscripten_system_include_path) |path| {
         sdl_mod.addSystemIncludePath(path);
-    }
-    if (android) {
-        sdl_mod.addSystemIncludePath(.{ .cwd_relative = "/usr/include" });
     }
 
     var sdl_c_flags: std.BoundedArray([]const u8, common_c_flags.len + 3) = .{};
@@ -997,6 +990,7 @@ pub fn build(b: *std.Build) void {
     }
 
     if (android) {
+        sdl_mod.addSystemIncludePath(.{ .cwd_relative = "/home/stark/Software/Android/Sdk/ndk/29.0.13113456/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include" });
         sdl_mod.addCSourceFiles(.{
             .flags = sdl_c_flags.slice(),
             .files = &.{
