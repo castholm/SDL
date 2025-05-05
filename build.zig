@@ -284,7 +284,7 @@ pub fn build(b: *std.Build) void {
             .HAVE_TPCSHRD_H = windows,
             .HAVE_ROAPI_H = windows,
             .HAVE_SHELLSCALINGAPI_H = windows,
-            .USE_POSIX_SPAWN = android,
+            .USE_POSIX_SPAWN = false,
             .SDL_DEFAULT_ASSERT_LEVEL_CONFIGURED = false,
             .SDL_DEFAULT_ASSERT_LEVEL = null,
             .SDL_AUDIO_DISABLED = false,
@@ -570,6 +570,10 @@ pub fn build(b: *std.Build) void {
     sdl_mod.addCMacro("SDL_BUILD_MAJOR_VERSION", std.fmt.comptimePrint("{}", .{version.major}));
     sdl_mod.addCMacro("SDL_BUILD_MINOR_VERSION", std.fmt.comptimePrint("{}", .{version.minor}));
     sdl_mod.addCMacro("SDL_BUILD_MICRO_VERSION", std.fmt.comptimePrint("{}", .{version.patch}));
+    // Add this to enable POSIX Spawn API
+    if (linux or macos or android) {
+        sdl_mod.addCMacro("_POSIX_C_SOURCE", "200809L");
+    }
     switch (sdl_lib.linkage.?) {
         .static => {
             sdl_mod.addCMacro("SDL_STATIC_LIB", "1");
