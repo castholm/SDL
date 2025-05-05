@@ -283,7 +283,7 @@ pub fn build(b: *std.Build) void {
             .HAVE_TPCSHRD_H = windows,
             .HAVE_ROAPI_H = windows,
             .HAVE_SHELLSCALINGAPI_H = windows,
-            .USE_POSIX_SPAWN = android,
+            .USE_POSIX_SPAWN = false,
             .SDL_DEFAULT_ASSERT_LEVEL_CONFIGURED = false,
             .SDL_DEFAULT_ASSERT_LEVEL = null,
             .SDL_AUDIO_DISABLED = false,
