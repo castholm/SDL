@@ -566,14 +566,14 @@ pub fn build(b: *std.Build) void {
     });
     sdl_lib.want_lto = lto;
 
-    sdl_mod.addCMacro("USING_GENERATED_CONFIG_H", "1");
+    // sdl_mod.addCMacro("USING_GENERATED_CONFIG_H", "1");
     sdl_mod.addCMacro("SDL_BUILD_MAJOR_VERSION", std.fmt.comptimePrint("{}", .{version.major}));
     sdl_mod.addCMacro("SDL_BUILD_MINOR_VERSION", std.fmt.comptimePrint("{}", .{version.minor}));
     sdl_mod.addCMacro("SDL_BUILD_MICRO_VERSION", std.fmt.comptimePrint("{}", .{version.patch}));
-    // // Add this to enable POSIX Spawn API
-    if (android) {
-        sdl_mod.addCMacro("_GNU_SOURCE", "1");
-    }
+    // // // Add this to enable POSIX Spawn API
+    // if (android) {
+    //     sdl_mod.addCMacro("_GNU_SOURCE", "1");
+    // }
     switch (sdl_lib.linkage.?) {
         .static => {
             sdl_mod.addCMacro("SDL_STATIC_LIB", "1");
