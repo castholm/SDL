@@ -444,7 +444,7 @@ pub fn build(b: *std.Build) void {
             .SDL_VIDEO_RENDER_GPU = windows or linux or macos or emscripten or android,
             .SDL_VIDEO_RENDER_METAL = macos,
             .SDL_VIDEO_RENDER_VULKAN = windows or linux or macos or android,
-            .SDL_VIDEO_RENDER_OGL = windows or linux or macos or android,
+            .SDL_VIDEO_RENDER_OGL = windows or linux or macos,
             .SDL_VIDEO_RENDER_OGL_ES2 = windows or linux or macos or emscripten or android,
             .SDL_VIDEO_RENDER_PS2 = false,
             .SDL_VIDEO_RENDER_PSP = false,
@@ -1061,7 +1061,7 @@ pub fn build(b: *std.Build) void {
         sdl_mod.link_libcpp = true;
 
         // This is needed for "src/render/opengles/SDL_render_gles.c" to compile
-        sdl_mod.addCMacro("GL_GLEXT_PROTOTYPES", "1");
+        // sdl_mod.addCMacro("GL_GLEXT_PROTOTYPES", "1");
 
         // Add Java files to dependency
         const java_dir = b.path("android-project/app/src/main/java/org/libsdl/app");
