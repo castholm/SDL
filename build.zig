@@ -284,7 +284,7 @@ pub fn build(b: *std.Build) void {
             .HAVE_TPCSHRD_H = windows,
             .HAVE_ROAPI_H = windows,
             .HAVE_SHELLSCALINGAPI_H = windows,
-            .USE_POSIX_SPAWN = false,
+            .USE_POSIX_SPAWN = android,
             .SDL_DEFAULT_ASSERT_LEVEL_CONFIGURED = false,
             .SDL_DEFAULT_ASSERT_LEVEL = null,
             .SDL_AUDIO_DISABLED = false,
@@ -372,7 +372,7 @@ pub fn build(b: *std.Build) void {
             .SDL_THREAD_GENERIC_RWLOCK_SUFFIX = windows,
             .SDL_THREAD_PTHREAD = linux or android or macos or emscripten and emscripten_pthreads,
             .SDL_THREAD_PTHREAD_RECURSIVE_MUTEX = linux or android or macos or emscripten and emscripten_pthreads,
-            .SDL_THREAD_PTHREAD_RECURSIVE_MUTEX_NP = false,
+            .SDL_THREAD_PTHREAD_RECURSIVE_MUTEX_NP = android,
             .SDL_THREAD_WINDOWS = windows,
             .SDL_THREAD_VITA = false,
             .SDL_THREAD_PSP = false,
@@ -444,16 +444,16 @@ pub fn build(b: *std.Build) void {
             .SDL_VIDEO_RENDER_GPU = windows or linux or macos or emscripten or android,
             .SDL_VIDEO_RENDER_METAL = macos,
             .SDL_VIDEO_RENDER_VULKAN = windows or linux or macos or android,
-            .SDL_VIDEO_RENDER_OGL = windows or linux or macos,
+            .SDL_VIDEO_RENDER_OGL = windows or linux or macos or android,
             .SDL_VIDEO_RENDER_OGL_ES2 = windows or linux or macos or emscripten or android,
             .SDL_VIDEO_RENDER_PS2 = false,
             .SDL_VIDEO_RENDER_PSP = false,
             .SDL_VIDEO_RENDER_VITA_GXM = false,
             .SDL_VIDEO_OPENGL = windows or linux or macos or android,
-            .SDL_VIDEO_OPENGL_ES = linux,
+            .SDL_VIDEO_OPENGL_ES = linux or android,
             .SDL_VIDEO_OPENGL_ES2 = windows or linux or macos or emscripten or android,
             .SDL_VIDEO_OPENGL_CGL = macos,
-            .SDL_VIDEO_OPENGL_GLX = linux,
+            .SDL_VIDEO_OPENGL_GLX = linux or android,
             .SDL_VIDEO_OPENGL_WGL = windows,
             .SDL_VIDEO_OPENGL_EGL = windows or linux or macos or emscripten or android,
             .SDL_VIDEO_VULKAN = windows or linux or macos or android,
@@ -501,7 +501,7 @@ pub fn build(b: *std.Build) void {
             .SDL_CAMERA_DRIVER_VITA = false,
             .SDL_DIALOG_DUMMY = false,
             .SDL_ALTIVEC_BLITTERS = false,
-            .DYNAPI_NEEDS_DLOPEN = linux or macos or emscripten,
+            .DYNAPI_NEEDS_DLOPEN = linux or android or macos or emscripten,
             .SDL_USE_IME = linux,
             .SDL_DISABLE_WINDOWS_IME = false,
             .SDL_GDK_TEXTINPUT = false,
@@ -591,7 +591,7 @@ pub fn build(b: *std.Build) void {
     sdl_mod.addConfigHeader(revision_h);
     sdl_mod.addIncludePath(b.path("include"));
     sdl_mod.addIncludePath(b.path("src"));
-    sdl_mod.addIncludePath(b.path("include/build_config"));
+    // sdl_mod.addIncludePath(b.path("include/build_config"));
     sdl_mod.addSystemIncludePath(b.path("src/video/khronos"));
     if (linux_deps_values) |deps_values| {
         sdl_mod.addIncludePath(deps_values.dependency.path("src"));
