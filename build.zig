@@ -750,8 +750,8 @@ pub fn build(b: *std.Build) void {
             "src/render/vitagxm/SDL_render_vita_gxm.c",
             "src/render/vitagxm/SDL_render_vita_gxm_memory.c",
             "src/render/vitagxm/SDL_render_vita_gxm_tools.c",
-            "src/render/vulkan/SDL_render_vulkan.c",
-            "src/render/vulkan/SDL_shaders_vulkan.c",
+            // "src/render/vulkan/SDL_render_vulkan.c",
+            // "src/render/vulkan/SDL_shaders_vulkan.c",
             "src/sensor/SDL_sensor.c",
             "src/stdlib/SDL_crc16.c",
             "src/stdlib/SDL_crc32.c",
@@ -1000,8 +1000,8 @@ pub fn build(b: *std.Build) void {
 
                 "src/gpu/vulkan/SDL_gpu_vulkan.c",
 
-                // "src/render/opengles2/SDL_render_gles2.c",
-                // "src/render/opengles2/SDL_shaders_gles2.c",
+                "src/render/opengles2/SDL_render_gles2.c",
+                "src/render/opengles2/SDL_shaders_gles2.c",
                 "src/render/vulkan/SDL_render_vulkan.c",
                 "src/render/vulkan/SDL_shaders_vulkan.c",
 
