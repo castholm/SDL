@@ -990,7 +990,6 @@ pub fn build(b: *std.Build) void {
     }
 
     if (android) {
-        sdl_mod.addSystemIncludePath(.{ .cwd_relative = "/home/stark/Software/Android/Sdk/ndk/29.0.13113456/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include" });
         sdl_mod.addCSourceFiles(.{
             .flags = sdl_c_flags.slice(),
             .files = &.{
