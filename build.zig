@@ -1019,8 +1019,8 @@ pub fn build(b: *std.Build) void {
                 "src/camera/android/SDL_camera_android.c",
                 "src/sensor/android/SDL_androidsensor.c",
 
-                "src/process/posix/SDL_posixprocess.c",
-                "src/process/dummy/SDL_dummyprocess.c",
+                // "src/process/posix/SDL_posixprocess.c",
+                // "src/process/dummy/SDL_dummyprocess.c",
 
                 "src/dialog/android/SDL_androiddialog.c",
 
