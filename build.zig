@@ -1105,7 +1105,7 @@ pub fn build(b: *std.Build) void {
 
                 "src/render/SDL_d3dmath.c",
 
-                "src/video/x11/SDL_x12clipboard.c",
+                "src/video/x11/SDL_x11clipboard.c",
                 "src/video/x11/SDL_x11dyn.c",
                 "src/video/x11/SDL_x11events.c",
                 "src/video/x11/SDL_x11framebuffer.c",
