@@ -2104,7 +2104,9 @@ static void Cocoa_SendMouseButtonClicks(SDL_Mouse *mouse, NSEvent *theEvent, SDL
 
 - (BOOL)acceptsFirstMouse:(NSEvent *)theEvent
 {
-    if (SDL_GetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH)) {
+    if (_sdlWindow->flags & SDL_WINDOW_POPUP_MENU) {
+        return YES;
+    } else if (SDL_GetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH)) {
         return SDL_GetHintBoolean(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, false);
     } else {
         return SDL_GetHintBoolean("SDL_MAC_MOUSE_FOCUS_CLICKTHROUGH", false);
@@ -2112,6 +2114,36 @@ static void Cocoa_SendMouseButtonClicks(SDL_Mouse *mouse, NSEvent *theEvent, SDL
 }
 
 @end
+
+static void Cocoa_UpdateMouseFocus()
+{
+    const NSPoint mouseLocation = [NSEvent mouseLocation];
+
+    // Find the topmost window under the pointer and send a motion event if it is an SDL window.
+    [NSApp enumerateWindowsWithOptions:NSWindowListOrderedFrontToBack
+                            usingBlock:^(NSWindow *nswin, BOOL *stop) {
+                              NSRect r = [nswin contentRectForFrameRect:[nswin frame]];
+                              if (NSPointInRect(mouseLocation, r)) {
+                                  SDL_VideoDevice *vid = SDL_GetVideoDevice();
+                                  SDL_Window *sdlwindow;
+                                  for (sdlwindow = vid->windows; sdlwindow; sdlwindow = sdlwindow->next) {
+                                      if (nswin == ((__bridge SDL_CocoaWindowData *)sdlwindow->internal).nswindow) {
+                                          break;
+                                      }
+                                  }
+                                  *stop = YES;
+                                  if (sdlwindow) {
+                                      int wx, wy;
+                                      SDL_RelativeToGlobalForWindow(sdlwindow, sdlwindow->x, sdlwindow->y, &wx, &wy);
+
+                                      // Calculate the cursor coordinates relative to the window.
+                                      const float dx = mouseLocation.x - wx;
+                                      const float dy = (CGDisplayPixelsHigh(kCGDirectMainDisplay) - mouseLocation.y) - wy;
+                                      SDL_SendMouseMotion(0, sdlwindow, SDL_GLOBAL_MOUSE_ID, false, dx, dy);
+                                  }
+                              }
+                            }];
+}
 
 static bool SetupWindowData(SDL_VideoDevice *_this, SDL_Window *window, NSWindow *nswindow, NSView *nsview)
 {
@@ -2210,8 +2242,10 @@ static bool SetupWindowData(SDL_VideoDevice *_this, SDL_Window *window, NSWindow
         } else {
             if (window->flags & SDL_WINDOW_TOOLTIP) {
                 [nswindow setIgnoresMouseEvents:YES];
-            } else if (window->flags & SDL_WINDOW_POPUP_MENU) {
+                [nswindow setAcceptsMouseMovedEvents:NO];
+            } else if ((window->flags & SDL_WINDOW_POPUP_MENU) && !(window->flags & SDL_WINDOW_HIDDEN)) {
                 Cocoa_SetKeyboardFocus(window, window->parent == SDL_GetKeyboardFocus());
+                Cocoa_UpdateMouseFocus();
             }
         }
 
@@ -2531,8 +2565,8 @@ void Cocoa_SetWindowMaximumSize(SDL_VideoDevice *_this, SDL_Window *window)
         SDL_CocoaWindowData *windata = (__bridge SDL_CocoaWindowData *)window->internal;
 
         NSSize maxSize;
-        maxSize.width = window->max_w;
-        maxSize.height = window->max_h;
+        maxSize.width = window->max_w ? window->max_w : CGFLOAT_MAX;
+        maxSize.height = window->max_h ? window->max_h : CGFLOAT_MAX;
 
         [windata.nswindow setContentMaxSize:maxSize];
     }
@@ -2596,6 +2630,9 @@ void Cocoa_ShowWindow(SDL_VideoDevice *_this, SDL_Window *window)
                         [nswindow orderWindow:NSWindowBelow relativeTo:[[NSApp keyWindow] windowNumber]];
                     }
                 }
+            } else if (window->flags & SDL_WINDOW_POPUP_MENU) {
+                Cocoa_SetKeyboardFocus(window, window->parent == SDL_GetKeyboardFocus());
+                Cocoa_UpdateMouseFocus();
             }
         }
         [nswindow setIsVisible:YES];
@@ -2643,6 +2680,7 @@ void Cocoa_HideWindow(SDL_VideoDevice *_this, SDL_Window *window)
             }
 
             Cocoa_SetKeyboardFocus(new_focus, set_focus);
+            Cocoa_UpdateMouseFocus();
         } else if (window->parent && waskey) {
             /* Key status is not automatically set on the parent when a child is hidden. Check if the
              * child window was key, and set the first visible parent to be key if so.

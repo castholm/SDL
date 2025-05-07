@@ -80,7 +80,7 @@ When building for non-native macOS targets (for example for x86-64 from an AArch
 
 ```sh
 sysroot_path=$(xcrun --sdk macosx --show-sdk-path)
-zig build -Dtarget=x86_64-macos-none --sysroot "$sysroot_path"
+zig build -Dtarget=x86_64-macos --sysroot "$sysroot_path"
 ```
 
 ### Emscripten (web)
@@ -104,7 +104,7 @@ When building for Emscripten, you need to provide a path to the Emscripten sysro
 ```sh
 cache_path=$(em-config CACHE)
 sysroot_path="$cache_path/sysroot"
-zig build -Dtarget=wasm32-emscripten-musl --sysroot "$sysroot_path"
+zig build -Dtarget=wasm32-emscripten --sysroot "$sysroot_path"
 ```
 
 Depending on the state of your Emscripten cache, you might need to run `embuilder build sysroot` to ensure that the Emscripten sysroot is built before you run `zig build`.

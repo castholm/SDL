@@ -277,6 +277,7 @@ static Uint32 initial_blacklist_devices[] = {
     MAKE_VIDPID(0x1532, 0x0282), // Razer Huntsman Mini Analog, non-functional DInput device
     MAKE_VIDPID(0x26ce, 0x01a2), // ASRock LED Controller
     MAKE_VIDPID(0x20d6, 0x0002), // PowerA Enhanced Wireless Controller for Nintendo Switch (charging port only)
+    MAKE_VIDPID(0x3434, 0x0211), // Keychron K1 Pro System Control
 };
 static SDL_vidpid_list blacklist_devices = {
     SDL_HINT_JOYSTICK_BLACKLIST_DEVICES, 0, 0, NULL,
@@ -289,7 +290,17 @@ static Uint32 initial_flightstick_devices[] = {
     MAKE_VIDPID(0x044f, 0x0402), // HOTAS Warthog Joystick
     MAKE_VIDPID(0x044f, 0xb10a), // ThrustMaster, Inc. T.16000M Joystick
     MAKE_VIDPID(0x046d, 0xc215), // Logitech Extreme 3D
+    MAKE_VIDPID(0x0583, 0x6258), // Padix USB joystick with viewfinder
+    MAKE_VIDPID(0x0583, 0x688f), // Padix QF-688uv Windstorm Pro
+    MAKE_VIDPID(0x0583, 0x7070), // Padix QF-707u Bazooka
+    MAKE_VIDPID(0x0583, 0xa019), // Padix USB vibration joystick with viewfinder
+    MAKE_VIDPID(0x0583, 0xa131), // Padix USB Wireless 2.4GHz
+    MAKE_VIDPID(0x0583, 0xa209), // Padix MetalStrike ForceFeedback
+    MAKE_VIDPID(0x0583, 0xb010), // Padix MetalStrike Pro
+    MAKE_VIDPID(0x0583, 0xb012), // Padix Wireless MetalStrike
+    MAKE_VIDPID(0x0583, 0xb013), // Padix USB Wireless 2.4GHZ
     MAKE_VIDPID(0x0738, 0x2221), // Saitek Pro Flight X-56 Rhino Stick
+    MAKE_VIDPID(0x10f5, 0x7084), // Turtle Beach VelocityOne
     MAKE_VIDPID(0x231d, 0x0126), // Gunfighter Mk.III 'Space Combat Edition' (right)
     MAKE_VIDPID(0x231d, 0x0127), // Gunfighter Mk.III 'Space Combat Edition' (left)
     MAKE_VIDPID(0x362c, 0x0001), // Yawman Arrow
@@ -331,6 +342,7 @@ static SDL_vidpid_list rog_gamepad_mice = {
 static Uint32 initial_throttle_devices[] = {
     MAKE_VIDPID(0x044f, 0x0404), // HOTAS Warthog Throttle
     MAKE_VIDPID(0x0738, 0xa221), // Saitek Pro Flight X-56 Rhino Throttle
+    MAKE_VIDPID(0x10f5, 0x7085), // Turtle Beach VelocityOne Throttle
 };
 static SDL_vidpid_list throttle_devices = {
     SDL_HINT_JOYSTICK_THROTTLE_DEVICES, 0, 0, NULL,
@@ -374,6 +386,14 @@ static Uint32 initial_wheel_devices[] = {
     MAKE_VIDPID(0x046d, 0xca03), // Logitech Momo Racing
     MAKE_VIDPID(0x0483, 0x0522), // Simagic Wheelbase (including M10, Alpha Mini, Alpha, Alpha U)
     MAKE_VIDPID(0x0483, 0xa355), // VRS DirectForce Pro Wheel Base
+    MAKE_VIDPID(0x0583, 0xa132), // Padix USB Wireless 2.4GHz Wheelpad
+    MAKE_VIDPID(0x0583, 0xa133), // Padix USB Wireless 2.4GHz Wheel
+    MAKE_VIDPID(0x0583, 0xa202), // Padix Force Feedback Wheel
+    MAKE_VIDPID(0x0583, 0xb002), // Padix Vibration USB Wheel
+    MAKE_VIDPID(0x0583, 0xb005), // Padix USB Wheel
+    MAKE_VIDPID(0x0583, 0xb008), // Padix USB Wireless 2.4GHz Wheel
+    MAKE_VIDPID(0x0583, 0xb009), // Padix USB Wheel
+    MAKE_VIDPID(0x0583, 0xb018), // Padix TW6 Wheel
     MAKE_VIDPID(0x0eb7, 0x0001), // Fanatec ClubSport Wheel Base V2
     MAKE_VIDPID(0x0eb7, 0x0004), // Fanatec ClubSport Wheel Base V2.5
     MAKE_VIDPID(0x0eb7, 0x0005), // Fanatec CSL Elite Wheel Base+ (PS4)
@@ -1814,6 +1834,14 @@ bool SDL_RumbleJoystickTriggers(SDL_Joystick *joystick, Uint16 left_rumble, Uint
             result = true;
         } else {
             result = joystick->driver->RumbleTriggers(joystick, left_rumble, right_rumble);
+            if (result) {
+                joystick->trigger_rumble_resend = SDL_GetTicks() + SDL_RUMBLE_RESEND_MS;
+                if (joystick->trigger_rumble_resend == 0) {
+                    joystick->trigger_rumble_resend = 1;
+                }
+            } else {
+                joystick->trigger_rumble_resend = 0;
+            }
         }
 
         if (result) {
@@ -1824,6 +1852,7 @@ bool SDL_RumbleJoystickTriggers(SDL_Joystick *joystick, Uint16 left_rumble, Uint
                 joystick->trigger_rumble_expiration = SDL_GetTicks() + SDL_min(duration_ms, SDL_MAX_RUMBLE_DURATION_MS);
             } else {
                 joystick->trigger_rumble_expiration = 0;
+                joystick->trigger_rumble_resend = 0;
             }
         }
     }
@@ -2478,6 +2507,15 @@ void SDL_UpdateJoysticks(void)
 
         if (joystick->trigger_rumble_expiration && now >= joystick->trigger_rumble_expiration) {
             SDL_RumbleJoystickTriggers(joystick, 0, 0, 0);
+            joystick->trigger_rumble_resend = 0;
+        }
+
+        if (joystick->trigger_rumble_resend && now >= joystick->trigger_rumble_resend) {
+            joystick->driver->RumbleTriggers(joystick, joystick->left_trigger_rumble, joystick->right_trigger_rumble);
+            joystick->trigger_rumble_resend = now + SDL_RUMBLE_RESEND_MS;
+            if (joystick->trigger_rumble_resend == 0) {
+                joystick->trigger_rumble_resend = 1;
+            }
         }
     }
 
@@ -2858,7 +2896,8 @@ bool SDL_IsJoystickXboxSeriesX(Uint16 vendor_id, Uint16 product_id)
     }
     if (vendor_id == USB_VENDOR_HORI) {
         if (product_id == USB_PRODUCT_HORI_FIGHTING_COMMANDER_OCTA_SERIES_X ||
-            product_id == USB_PRODUCT_HORI_HORIPAD_PRO_SERIES_X) {
+            product_id == USB_PRODUCT_HORI_HORIPAD_PRO_SERIES_X ||
+            product_id == USB_PRODUCT_HORI_TAIKO_DRUM_CONTROLLER) {
             return true;
         }
     }
