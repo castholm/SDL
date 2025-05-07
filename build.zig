@@ -566,7 +566,7 @@ pub fn build(b: *std.Build) void {
     });
     sdl_lib.want_lto = lto;
 
-    sdl_mod.addCMacro("USING_GENERATED_CONFIG_H", "1");
+    if (!android) sdl_mod.addCMacro("USING_GENERATED_CONFIG_H", "1");
     sdl_mod.addCMacro("SDL_BUILD_MAJOR_VERSION", std.fmt.comptimePrint("{}", .{version.major}));
     sdl_mod.addCMacro("SDL_BUILD_MINOR_VERSION", std.fmt.comptimePrint("{}", .{version.minor}));
     sdl_mod.addCMacro("SDL_BUILD_MICRO_VERSION", std.fmt.comptimePrint("{}", .{version.patch}));
@@ -583,8 +583,8 @@ pub fn build(b: *std.Build) void {
         sdl_mod.addCMacro("_REENTRANT", "1");
     }
 
-    sdl_mod.addConfigHeader(build_config_h);
-    sdl_mod.addConfigHeader(revision_h);
+    if (!android) sdl_mod.addConfigHeader(build_config_h);
+    if (!android) sdl_mod.addConfigHeader(revision_h);
     sdl_mod.addIncludePath(b.path("include"));
     sdl_mod.addIncludePath(b.path("src"));
     // sdl_mod.addIncludePath(b.path("include/build_config"));
@@ -859,10 +859,10 @@ pub fn build(b: *std.Build) void {
                 });
                 sdl_uclibc_lib.want_lto = lto;
 
-                sdl_uclibc_mod.addCMacro("USING_GENERATED_CONFIG_H", "1");
+                if (!android) sdl_uclibc_mod.addCMacro("USING_GENERATED_CONFIG_H", "1");
 
-                sdl_uclibc_mod.addConfigHeader(build_config_h);
-                sdl_uclibc_mod.addConfigHeader(revision_h);
+                if (!android) sdl_uclibc_mod.addConfigHeader(build_config_h);
+                if (!android) sdl_uclibc_mod.addConfigHeader(revision_h);
                 sdl_uclibc_mod.addIncludePath(b.path("include"));
                 sdl_uclibc_mod.addIncludePath(b.path("src"));
 
@@ -1462,8 +1462,8 @@ pub fn build(b: *std.Build) void {
     });
     sdl_test_lib.want_lto = lto;
 
-    sdl_test_mod.addConfigHeader(build_config_h);
-    sdl_test_mod.addConfigHeader(revision_h);
+    if (!android) sdl_test_mod.addConfigHeader(build_config_h);
+    if (!android) sdl_test_mod.addConfigHeader(revision_h);
     sdl_test_mod.addIncludePath(b.path("include"));
     if (emscripten_system_include_path) |path| {
         sdl_test_mod.addSystemIncludePath(path);
