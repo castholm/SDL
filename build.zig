@@ -1050,6 +1050,8 @@ pub fn build(b: *std.Build) void {
                 "src/video/android/SDL_androidpen.c",
                 "src/video/android/SDL_androidvulkan.c",
                 "src/video/android/SDL_androidwindow.c",
+
+                "src/main/generic/SDL_sysmain_callbacks.c",
             },
         });
         sdl_mod.addCSourceFiles(.{
