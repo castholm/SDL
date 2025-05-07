@@ -1464,6 +1464,11 @@ pub fn build(b: *std.Build) void {
 
     if (!android) sdl_test_mod.addConfigHeader(build_config_h);
     if (!android) sdl_test_mod.addConfigHeader(revision_h);
+
+    if (android) {
+        sdl_mod.addIncludePath(b.path("include/build_config"));
+    }
+
     sdl_test_mod.addIncludePath(b.path("include"));
     if (emscripten_system_include_path) |path| {
         sdl_test_mod.addSystemIncludePath(path);
