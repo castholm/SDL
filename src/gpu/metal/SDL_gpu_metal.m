@@ -840,6 +840,10 @@ static MetalLibraryFunction METAL_INTERNAL_CompileShader(
     dispatch_data_t data;
     id<MTLFunction> function;
 
+    if (!entrypoint) {
+        entrypoint = "main0";
+    }
+
     if (format == SDL_GPU_SHADERFORMAT_MSL) {
         NSString *codeString = [[NSString alloc]
             initWithBytes:code
@@ -1494,7 +1498,9 @@ static SDL_GPUTexture *METAL_CreateTexture(
         // Copy properties so we don't lose information when the client destroys them
         container->header.info = *createinfo;
         container->header.info.props = SDL_CreateProperties();
-        SDL_CopyProperties(createinfo->props, container->header.info.props);
+        if (createinfo->props) {
+            SDL_CopyProperties(createinfo->props, container->header.info.props);
+        }
 
         container->activeTexture = texture;
         container->textureCapacity = 1;

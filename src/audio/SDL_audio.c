@@ -1503,11 +1503,24 @@ SDL_AudioDevice *SDL_FindPhysicalAudioDeviceByHandle(void *handle)
 const char *SDL_GetAudioDeviceName(SDL_AudioDeviceID devid)
 {
     const char *result = NULL;
-    SDL_AudioDevice *device = ObtainPhysicalAudioDevice(devid);
-    if (device) {
-        result = SDL_GetPersistentString(device->name);
+    SDL_AudioDevice *device = NULL;
+
+    if (!SDL_GetCurrentAudioDriver()) {
+        SDL_SetError("Audio subsystem is not initialized");
+    } else {
+        // This does not call ObtainPhysicalAudioDevice() because the device's name never changes, so
+        // it doesn't have to lock the whole device. However, just to make sure the device pointer itself
+        // remains valid (in case the device is unplugged at the wrong moment), we hold the
+        // device_hash_lock while we copy the string.
+        SDL_LockRWLockForReading(current_audio.device_hash_lock);
+        SDL_FindInHashTable(current_audio.device_hash, (const void *) (uintptr_t) devid, (const void **) &device);
+        if (!device) {
+            SDL_SetError("Invalid audio device instance ID");
+        } else {
+            result = SDL_GetPersistentString(device->name);
+        }
+        SDL_UnlockRWLock(current_audio.device_hash_lock);
     }
-    ReleaseAudioDevice(device);
 
     return result;
 }

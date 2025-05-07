@@ -1658,8 +1658,6 @@ SDL_Texture *SDL_CreateTextureFromSurface(SDL_Renderer *renderer, SDL_Surface *s
         }
     }
 
-    surface_colorspace = SDL_GetSurfaceColorspace(surface);
-
     // Try to have the best pixel format for the texture
     // No alpha, but a colorkey => promote to alpha
     if (!SDL_ISPIXELFORMAT_ALPHA(surface->format) && SDL_SurfaceHasColorKey(surface)) {
@@ -1720,6 +1718,9 @@ SDL_Texture *SDL_CreateTextureFromSurface(SDL_Renderer *renderer, SDL_Surface *s
             }
         }
     }
+
+    surface_colorspace = SDL_GetSurfaceColorspace(surface);
+    texture_colorspace = surface_colorspace;
 
     if (surface_colorspace == SDL_COLORSPACE_SRGB_LINEAR ||
         SDL_COLORSPACETRANSFER(surface_colorspace) == SDL_TRANSFER_CHARACTERISTICS_PQ) {
@@ -3930,8 +3931,7 @@ bool SDL_RenderTexture(SDL_Renderer *renderer, SDL_Texture *texture, const SDL_F
     real_srcrect.w = (float)texture->w;
     real_srcrect.h = (float)texture->h;
     if (srcrect) {
-        if (!SDL_GetRectIntersectionFloat(srcrect, &real_srcrect, &real_srcrect) ||
-            real_srcrect.w == 0.0f || real_srcrect.h == 0.0f) {
+        if (!SDL_GetRectIntersectionFloat(srcrect, &real_srcrect, &real_srcrect)) {
             return true;
         }
     }
