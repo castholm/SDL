@@ -735,8 +735,8 @@ pub fn build(b: *std.Build) void {
             "src/render/gpu/SDL_shaders_gpu.c",
             "src/render/opengl/SDL_render_gl.c",
             "src/render/opengl/SDL_shaders_gl.c",
-            // "src/render/opengles2/SDL_render_gles2.c",
-            // "src/render/opengles2/SDL_shaders_gles2.c",
+            "src/render/opengles2/SDL_render_gles2.c",
+            "src/render/opengles2/SDL_shaders_gles2.c",
             // "src/render/ps2/SDL_render_ps2.c",
             // "src/render/psp/SDL_render_psp.c",
             "src/render/software/SDL_blendfillrect.c",
@@ -750,8 +750,8 @@ pub fn build(b: *std.Build) void {
             "src/render/vitagxm/SDL_render_vita_gxm.c",
             "src/render/vitagxm/SDL_render_vita_gxm_memory.c",
             "src/render/vitagxm/SDL_render_vita_gxm_tools.c",
-            // "src/render/vulkan/SDL_render_vulkan.c",
-            // "src/render/vulkan/SDL_shaders_vulkan.c",
+            "src/render/vulkan/SDL_render_vulkan.c",
+            "src/render/vulkan/SDL_shaders_vulkan.c",
             "src/sensor/SDL_sensor.c",
             "src/stdlib/SDL_crc16.c",
             "src/stdlib/SDL_crc32.c",
@@ -1000,10 +1000,10 @@ pub fn build(b: *std.Build) void {
 
                 "src/gpu/vulkan/SDL_gpu_vulkan.c",
 
-                "src/render/opengles2/SDL_render_gles2.c",
-                "src/render/opengles2/SDL_shaders_gles2.c",
-                "src/render/vulkan/SDL_render_vulkan.c",
-                "src/render/vulkan/SDL_shaders_vulkan.c",
+                // "src/render/opengles2/SDL_render_gles2.c",
+                // "src/render/opengles2/SDL_shaders_gles2.c",
+                // "src/render/vulkan/SDL_render_vulkan.c",
+                // "src/render/vulkan/SDL_shaders_vulkan.c",
 
                 "src/haptic/android/SDL_syshaptic.c",
                 "src/joystick/android/SDL_sysjoystick.c",
@@ -1019,8 +1019,8 @@ pub fn build(b: *std.Build) void {
                 "src/camera/android/SDL_camera_android.c",
                 "src/sensor/android/SDL_androidsensor.c",
 
-                // "src/process/posix/SDL_posixprocess.c",
-                // "src/process/dummy/SDL_dummyprocess.c",
+                "src/process/posix/SDL_posixprocess.c",
+                "src/process/dummy/SDL_dummyprocess.c",
 
                 "src/dialog/android/SDL_androiddialog.c",
 
@@ -1061,7 +1061,7 @@ pub fn build(b: *std.Build) void {
         sdl_mod.link_libcpp = true;
 
         // This is needed for "src/render/opengles/SDL_render_gles.c" to compile
-        // sdl_mod.addCMacro("GL_GLEXT_PROTOTYPES", "1");
+        sdl_mod.addCMacro("GL_GLEXT_PROTOTYPES", "1");
 
         // Add Java files to dependency
         const java_dir = b.path("android-project/app/src/main/java/org/libsdl/app");
@@ -1105,7 +1105,7 @@ pub fn build(b: *std.Build) void {
 
                 "src/render/SDL_d3dmath.c",
 
-                "src/video/x11/SDL_x11clipboard.c",
+                "src/video/x11/SDL_x12clipboard.c",
                 "src/video/x11/SDL_x11dyn.c",
                 "src/video/x11/SDL_x11events.c",
                 "src/video/x11/SDL_x11framebuffer.c",
