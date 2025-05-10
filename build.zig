@@ -998,6 +998,7 @@ pub fn build(b: *std.Build) void {
                 "src/audio/aaudio/SDL_aaudio.c",
 
                 "src/gpu/vulkan/SDL_gpu_vulkan.c",
+                "src/main/generic/SDL_sysmain_callbacks.c",
 
                 "src/haptic/android/SDL_syshaptic.c",
                 "src/joystick/android/SDL_sysjoystick.c",
