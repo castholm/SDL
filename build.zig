@@ -995,9 +995,10 @@ pub fn build(b: *std.Build) void {
             .build_tools_version = "35.0.1",
             .ndk_version = "29.0.13113456",
         });
+        const api_level_str = b.fmt("{d}", .{@intFromEnum(android_tools.api_level)});
         const android_triple = getAndroidTriple(target);
         sdl_mod.addIncludePath(.{ .cwd_relative = android_tools.include_path });
-        sdl_mod.addLibraryPath(.{ .cwd_relative = b.pathJoin(&.{ android_tools.ndk_sysroot_path, "usr", "lib", android_triple }) });
+        sdl_mod.addLibraryPath(.{ .cwd_relative = b.pathJoin(&.{ android_tools.ndk_sysroot_path, "usr", "lib", android_triple, api_level_str }) });
 
         sdl_mod.addCSourceFiles(.{
             .flags = sdl_c_flags.slice(),
