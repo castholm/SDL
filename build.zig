@@ -1,11 +1,9 @@
-// © 2024 Carl Åstholm
-// SPDX-License-Identifier: MIT
-
 const std = @import("std");
+const android_build = @import("android");
 
 pub const version: std.SemanticVersion = .{ .major = 3, .minor = 2, .patch = 12 };
 const formatted_version = std.fmt.comptimePrint("SDL3-{}", .{version});
-pub const vendor_info = "https://github.com/castholm/SDL 0.2.2";
+pub const vendor_info = "https://github.com/stark26583/SDL 0.2.2";
 pub const revision = formatted_version ++ " (" ++ vendor_info ++ ")";
 
 pub fn build(b: *std.Build) void {
@@ -25,6 +23,7 @@ pub fn build(b: *std.Build) void {
         "strip",
         "Strip debug symbols (default: varies)",
     );
+    // TODO: Add Options to disable some functionalites to reduce the output lib size if not used.
     const pic = b.option(
         bool,
         "pic",
@@ -991,6 +990,14 @@ pub fn build(b: *std.Build) void {
     }
 
     if (android) {
+        const android_tools = android_build.Tools.create(b, .{
+            .api_level = .android15,
+            .build_tools_version = "35.0.1",
+            .ndk_version = "29.0.13113456",
+        });
+        sdl_mod.addIncludePath(.{ .cwd_relative = android_tools.include_path });
+        sdl_mod.addLibraryPath(.{ .cwd_relative = b.pathJoin(&.{ android_tools.ndk_sysroot_path, "usr", "lib" }) });
+
         sdl_mod.addCSourceFiles(.{
             .flags = sdl_c_flags.slice(),
             .files = &.{
@@ -1050,8 +1057,6 @@ pub fn build(b: *std.Build) void {
                 "src/video/android/SDL_androidpen.c",
                 "src/video/android/SDL_androidvulkan.c",
                 "src/video/android/SDL_androidwindow.c",
-
-                "src/main/generic/SDL_sysmain_callbacks.c",
             },
         });
         sdl_mod.addCSourceFiles(.{
