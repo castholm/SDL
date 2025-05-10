@@ -12,10 +12,6 @@
             .hash = "sdl_linux_deps-0.0.0-Vy5_h4AlfwBtG7MIPe7ZNUANhmYLek_SA140uYk9SrED",
             .lazy = true,
         },
-        .android = .{
-            .url = "git+https://github.com/silbinarywolf/zig-android-sdk#17aa6475b12bea73cd7d07480b433d2f2d9d7c1c",
-            .hash = "android-0.1.0-7iz7QoSaAQCGbFl_CMg5mPgHq4_vogPxzxlhWpr5rM88",
-        },
     },
     .paths = .{
         "android-project",

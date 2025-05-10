@@ -1,5 +1,4 @@
 const std = @import("std");
-const android_build = @import("android");
 
 pub const version: std.SemanticVersion = .{ .major = 3, .minor = 2, .patch = 12 };
 const formatted_version = std.fmt.comptimePrint("SDL3-{}", .{version});
@@ -43,12 +42,6 @@ pub fn build(b: *std.Build) void {
         bool,
         "install_build_config_h",
         "Additionally install 'SDL_build_config.h' when installing SDL (default: false)",
-    ) orelse false;
-
-    const joystick_support = b.option(
-        bool,
-        "joystick",
-        "Enable joystick support (default: false)",
     ) orelse false;
 
     var android = false;
@@ -102,12 +95,6 @@ pub fn build(b: *std.Build) void {
     if (target.result.abi.isAndroid()) {
         android = true;
     }
-
-    const android_tools: ?*android_build.Tools = if (android) android_build.Tools.create(b, .{
-        .api_level = .android15,
-        .build_tools_version = "35.0.1",
-        .ndk_version = "29.0.13113456",
-    }) else null;
 
     const build_config_h: *std.Build.Step.ConfigHeader = build_config_h: {
         const cpu = target.result.cpu;
@@ -303,7 +290,7 @@ pub fn build(b: *std.Build) void {
             .SDL_GPU_DISABLED = false,
             .SDL_RENDER_DISABLED = false,
             .SDL_CAMERA_DISABLED = false,
-            .SDL_JOYSTICK_DISABLED = !joystick_support,
+            .SDL_JOYSTICK_DISABLED = false,
             .SDL_HAPTIC_DISABLED = false,
             .SDL_HIDAPI_DISABLED = false,
             .SDL_POWER_DISABLED = false,
@@ -341,22 +328,22 @@ pub fn build(b: *std.Build) void {
             .SDL_INPUT_FBSDKBIO = false,
             .SDL_INPUT_WSCONS = false,
             .SDL_HAVE_MACHINE_JOYSTICK_H = false,
-            .SDL_JOYSTICK_ANDROID = android and joystick_support,
+            .SDL_JOYSTICK_ANDROID = android,
             .SDL_JOYSTICK_DINPUT = windows,
             .SDL_JOYSTICK_DUMMY = false,
             .SDL_JOYSTICK_EMSCRIPTEN = emscripten,
             .SDL_JOYSTICK_GAMEINPUT = false,
             .SDL_JOYSTICK_HAIKU = false,
-            .SDL_JOYSTICK_HIDAPI = windows or linux or android or macos and joystick_support,
+            .SDL_JOYSTICK_HIDAPI = windows or linux or android or macos,
             .SDL_JOYSTICK_IOKIT = macos,
-            .SDL_JOYSTICK_LINUX = linux and joystick_support,
-            .SDL_JOYSTICK_MFI = macos and joystick_support,
+            .SDL_JOYSTICK_LINUX = linux,
+            .SDL_JOYSTICK_MFI = macos,
             .SDL_JOYSTICK_N3DS = false,
             .SDL_JOYSTICK_PS2 = false,
             .SDL_JOYSTICK_PSP = false,
             .SDL_JOYSTICK_RAWINPUT = windows,
             .SDL_JOYSTICK_USBHID = false,
-            .SDL_JOYSTICK_VIRTUAL = windows or linux or macos or emscripten or android and joystick_support,
+            .SDL_JOYSTICK_VIRTUAL = windows or linux or macos or emscripten or android,
             .SDL_JOYSTICK_VITA = false,
             .SDL_JOYSTICK_WGI = false,
             .SDL_JOYSTICK_XINPUT = windows,
@@ -706,6 +693,29 @@ pub fn build(b: *std.Build) void {
             "src/io/SDL_iostream.c",
             "src/io/generic/SDL_asyncio_generic.c",
 
+            "src/joystick/SDL_gamepad.c",
+            "src/joystick/SDL_joystick.c",
+            "src/joystick/SDL_steam_virtual_gamepad.c",
+            "src/joystick/controller_type.c",
+            "src/joystick/hidapi/SDL_hidapijoystick.c",
+            "src/joystick/hidapi/SDL_hidapi_combined.c",
+            "src/joystick/hidapi/SDL_hidapi_gamecube.c",
+            "src/joystick/hidapi/SDL_hidapi_luna.c",
+            "src/joystick/hidapi/SDL_hidapi_ps3.c",
+            "src/joystick/hidapi/SDL_hidapi_ps4.c",
+            "src/joystick/hidapi/SDL_hidapi_ps5.c",
+            "src/joystick/hidapi/SDL_hidapi_rumble.c",
+            "src/joystick/hidapi/SDL_hidapi_shield.c",
+            "src/joystick/hidapi/SDL_hidapi_stadia.c",
+            "src/joystick/hidapi/SDL_hidapi_steam.c",
+            "src/joystick/hidapi/SDL_hidapi_steam_hori.c",
+            "src/joystick/hidapi/SDL_hidapi_steamdeck.c",
+            "src/joystick/hidapi/SDL_hidapi_switch.c",
+            "src/joystick/hidapi/SDL_hidapi_wii.c",
+            "src/joystick/hidapi/SDL_hidapi_xbox360.c",
+            "src/joystick/hidapi/SDL_hidapi_xbox360w.c",
+            "src/joystick/hidapi/SDL_hidapi_xboxone.c",
+
             "src/locale/SDL_locale.c",
 
             "src/main/SDL_main_callbacks.c",
@@ -793,35 +803,6 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    if (joystick_support) {
-        sdl_mod.addCSourceFiles(.{
-            .files = &.{
-                "src/joystick/SDL_gamepad.c",
-                "src/joystick/SDL_joystick.c",
-                "src/joystick/SDL_steam_virtual_gamepad.c",
-                "src/joystick/controller_type.c",
-                "src/joystick/hidapi/SDL_hidapijoystick.c",
-                "src/joystick/hidapi/SDL_hidapi_combined.c",
-                "src/joystick/hidapi/SDL_hidapi_gamecube.c",
-                "src/joystick/hidapi/SDL_hidapi_luna.c",
-                "src/joystick/hidapi/SDL_hidapi_ps3.c",
-                "src/joystick/hidapi/SDL_hidapi_ps4.c",
-                "src/joystick/hidapi/SDL_hidapi_ps5.c",
-                "src/joystick/hidapi/SDL_hidapi_rumble.c",
-                "src/joystick/hidapi/SDL_hidapi_shield.c",
-                "src/joystick/hidapi/SDL_hidapi_stadia.c",
-                "src/joystick/hidapi/SDL_hidapi_steam.c",
-                "src/joystick/hidapi/SDL_hidapi_steam_hori.c",
-                "src/joystick/hidapi/SDL_hidapi_steamdeck.c",
-                "src/joystick/hidapi/SDL_hidapi_switch.c",
-                "src/joystick/hidapi/SDL_hidapi_wii.c",
-                "src/joystick/hidapi/SDL_hidapi_xbox360.c",
-                "src/joystick/hidapi/SDL_hidapi_xbox360w.c",
-                "src/joystick/hidapi/SDL_hidapi_xboxone.c",
-            },
-        });
-    }
-
     const sdl_uclibc_c_files = .{
         "src/libm/e_atan2.c",
         "src/libm/e_exp.c",
@@ -908,7 +889,7 @@ pub fn build(b: *std.Build) void {
                 "src/render/direct3d12/SDL_render_d3d12.c",
                 "src/render/direct3d12/SDL_shaders_d3d12.c",
                 "src/camera/dummy/SDL_camera_dummy.c",
-                // "src/joystick/virtual/SDL_virtualjoystick.c",
+                "src/joystick/virtual/SDL_virtualjoystick.c",
                 "src/video/dummy/SDL_nullevents.c",
                 "src/video/dummy/SDL_nullframebuffer.c",
                 "src/video/dummy/SDL_nullvideo.c",
@@ -963,24 +944,24 @@ pub fn build(b: *std.Build) void {
                 "src/core/windows/SDL_xinput.c",
                 "src/core/windows/pch.c",
                 "src/tray/windows/SDL_tray.c",
-                // "src/joystick/hidapi/SDL_hidapi_combined.c",
-                // "src/joystick/hidapi/SDL_hidapi_gamecube.c",
-                // "src/joystick/hidapi/SDL_hidapi_luna.c",
-                // "src/joystick/hidapi/SDL_hidapi_ps3.c",
-                // "src/joystick/hidapi/SDL_hidapi_ps4.c",
-                // "src/joystick/hidapi/SDL_hidapi_ps5.c",
-                // "src/joystick/hidapi/SDL_hidapi_rumble.c",
-                // "src/joystick/hidapi/SDL_hidapi_shield.c",
-                // "src/joystick/hidapi/SDL_hidapi_stadia.c",
-                // "src/joystick/hidapi/SDL_hidapi_steam.c",
-                // "src/joystick/hidapi/SDL_hidapi_steam_hori.c",
-                // "src/joystick/hidapi/SDL_hidapi_steamdeck.c",
-                // "src/joystick/hidapi/SDL_hidapi_switch.c",
-                // "src/joystick/hidapi/SDL_hidapi_wii.c",
-                // "src/joystick/hidapi/SDL_hidapi_xbox360.c",
-                // "src/joystick/hidapi/SDL_hidapi_xbox360w.c",
-                // "src/joystick/hidapi/SDL_hidapi_xboxone.c",
-                // "src/joystick/hidapi/SDL_hidapijoystick.c",
+                "src/joystick/hidapi/SDL_hidapi_combined.c",
+                "src/joystick/hidapi/SDL_hidapi_gamecube.c",
+                "src/joystick/hidapi/SDL_hidapi_luna.c",
+                "src/joystick/hidapi/SDL_hidapi_ps3.c",
+                "src/joystick/hidapi/SDL_hidapi_ps4.c",
+                "src/joystick/hidapi/SDL_hidapi_ps5.c",
+                "src/joystick/hidapi/SDL_hidapi_rumble.c",
+                "src/joystick/hidapi/SDL_hidapi_shield.c",
+                "src/joystick/hidapi/SDL_hidapi_stadia.c",
+                "src/joystick/hidapi/SDL_hidapi_steam.c",
+                "src/joystick/hidapi/SDL_hidapi_steam_hori.c",
+                "src/joystick/hidapi/SDL_hidapi_steamdeck.c",
+                "src/joystick/hidapi/SDL_hidapi_switch.c",
+                "src/joystick/hidapi/SDL_hidapi_wii.c",
+                "src/joystick/hidapi/SDL_hidapi_xbox360.c",
+                "src/joystick/hidapi/SDL_hidapi_xbox360w.c",
+                "src/joystick/hidapi/SDL_hidapi_xboxone.c",
+                "src/joystick/hidapi/SDL_hidapijoystick.c",
                 "src/joystick/windows/SDL_dinputjoystick.c",
                 "src/joystick/windows/SDL_rawinputjoystick.c",
                 "src/joystick/windows/SDL_windows_gaming_input.c",
@@ -1008,12 +989,6 @@ pub fn build(b: *std.Build) void {
     }
 
     if (android) {
-        const api_level_str = b.fmt("{d}", .{@intFromEnum(android_tools.?.api_level)});
-        const android_triple = getAndroidTriple(target);
-        const lib_path = b.pathJoin(&.{ android_tools.?.ndk_sysroot_path, "usr", "lib", android_triple, api_level_str });
-        sdl_mod.addIncludePath(.{ .cwd_relative = android_tools.?.include_path });
-        sdl_mod.addLibraryPath(.{ .cwd_relative = lib_path });
-
         sdl_mod.addCSourceFiles(.{
             .flags = sdl_c_flags.slice(),
             .files = &.{
@@ -1025,6 +1000,8 @@ pub fn build(b: *std.Build) void {
                 "src/gpu/vulkan/SDL_gpu_vulkan.c",
 
                 "src/haptic/android/SDL_syshaptic.c",
+                "src/joystick/android/SDL_sysjoystick.c",
+                "src/joystick/virtual/SDL_virtualjoystick.c",
 
                 "src/storage/generic/SDL_genericstorage.c",
 
@@ -1068,15 +1045,6 @@ pub fn build(b: *std.Build) void {
                 "src/video/android/SDL_androidwindow.c",
             },
         });
-        if (joystick_support) {
-            sdl_mod.addCSourceFiles(.{
-                .flags = sdl_c_flags.slice(),
-                .files = &.{
-                    "src/joystick/android/SDL_sysjoystick.c",
-                    "src/joystick/virtual/SDL_virtualjoystick.c",
-                },
-            });
-        }
         sdl_mod.addCSourceFiles(.{
             .root = b.path(""),
             .files = &[_][]const u8{
@@ -1188,24 +1156,25 @@ pub fn build(b: *std.Build) void {
                 "src/io/io_uring/SDL_asyncio_liburing.c",
                 "src/core/linux/SDL_evdev_capabilities.c",
                 "src/core/linux/SDL_threadprio.c",
-                // "src/joystick/hidapi/SDL_hidapi_combined.c",
-                // "src/joystick/hidapi/SDL_hidapi_gamecube.c",
-                // "src/joystick/hidapi/SDL_hidapi_luna.c",
-                // "src/joystick/hidapi/SDL_hidapi_ps3.c",
-                // "src/joystick/hidapi/SDL_hidapi_ps4.c",
-                // "src/joystick/hidapi/SDL_hidapi_ps5.c",
-                // "src/joystick/hidapi/SDL_hidapi_rumble.c",
-                // "src/joystick/hidapi/SDL_hidapi_shield.c",
-                // "src/joystick/hidapi/SDL_hidapi_stadia.c",
-                // "src/joystick/hidapi/SDL_hidapi_steam.c",
-                // "src/joystick/hidapi/SDL_hidapi_steam_hori.c",
-                // "src/joystick/hidapi/SDL_hidapi_steamdeck.c",
-                // "src/joystick/hidapi/SDL_hidapi_switch.c",
-                // "src/joystick/hidapi/SDL_hidapi_wii.c",
-                // "src/joystick/hidapi/SDL_hidapi_xbox360.c",
-                // "src/joystick/hidapi/SDL_hidapi_xbox360w.c",
-                // "src/joystick/hidapi/SDL_hidapi_xboxone.c",
-                // "src/joystick/hidapi/SDL_hidapijoystick.c",
+                "src/joystick/hidapi/SDL_hidapi_combined.c",
+                "src/joystick/hidapi/SDL_hidapi_gamecube.c",
+                "src/joystick/hidapi/SDL_hidapi_luna.c",
+                "src/joystick/hidapi/SDL_hidapi_ps3.c",
+                "src/joystick/hidapi/SDL_hidapi_ps4.c",
+                "src/joystick/hidapi/SDL_hidapi_ps5.c",
+                "src/joystick/hidapi/SDL_hidapi_rumble.c",
+                "src/joystick/hidapi/SDL_hidapi_shield.c",
+                "src/joystick/hidapi/SDL_hidapi_stadia.c",
+                "src/joystick/hidapi/SDL_hidapi_steam.c",
+                "src/joystick/hidapi/SDL_hidapi_steam_hori.c",
+                "src/joystick/hidapi/SDL_hidapi_steamdeck.c",
+                "src/joystick/hidapi/SDL_hidapi_switch.c",
+                "src/joystick/hidapi/SDL_hidapi_wii.c",
+                "src/joystick/hidapi/SDL_hidapi_xbox360.c",
+                "src/joystick/hidapi/SDL_hidapi_xbox360w.c",
+                "src/joystick/hidapi/SDL_hidapi_xboxone.c",
+                "src/joystick/hidapi/SDL_hidapijoystick.c",
+                "src/joystick/linux/SDL_sysjoystick.c",
                 "src/thread/pthread/SDL_systhread.c",
                 "src/thread/pthread/SDL_sysmutex.c",
                 "src/thread/pthread/SDL_syscond.c",
@@ -1236,13 +1205,6 @@ pub fn build(b: *std.Build) void {
                 "src/main/generic/SDL_sysmain_callbacks.c",
             },
         });
-
-        if (joystick_support) {
-            sdl_mod.addCSourceFiles(.{ .files = &.{
-                "src/joystick/linux/SDL_sysjoystick.c",
-            } });
-        }
-
         if (linux_deps_values) |deps_values| {
             sdl_mod.addCSourceFiles(.{
                 .flags = sdl_c_flags.slice(),
@@ -1266,24 +1228,26 @@ pub fn build(b: *std.Build) void {
                 "src/camera/coremedia/SDL_camera_coremedia.m",
                 "src/misc/macos/SDL_sysurl.m",
                 "src/audio/coreaudio/SDL_coreaudio.m",
-                // "src/joystick/hidapi/SDL_hidapi_combined.c",
-                // "src/joystick/hidapi/SDL_hidapi_gamecube.c",
-                // "src/joystick/hidapi/SDL_hidapi_luna.c",
-                // "src/joystick/hidapi/SDL_hidapi_ps3.c",
-                // "src/joystick/hidapi/SDL_hidapi_ps4.c",
-                // "src/joystick/hidapi/SDL_hidapi_ps5.c",
-                // "src/joystick/hidapi/SDL_hidapi_rumble.c",
-                // "src/joystick/hidapi/SDL_hidapi_shield.c",
-                // "src/joystick/hidapi/SDL_hidapi_stadia.c",
-                // "src/joystick/hidapi/SDL_hidapi_steam.c",
-                // "src/joystick/hidapi/SDL_hidapi_steam_hori.c",
-                // "src/joystick/hidapi/SDL_hidapi_steamdeck.c",
-                // "src/joystick/hidapi/SDL_hidapi_switch.c",
-                // "src/joystick/hidapi/SDL_hidapi_wii.c",
-                // "src/joystick/hidapi/SDL_hidapi_xbox360.c",
-                // "src/joystick/hidapi/SDL_hidapi_xbox360w.c",
-                // "src/joystick/hidapi/SDL_hidapi_xboxone.c",
-                // "src/joystick/hidapi/SDL_hidapijoystick.c",
+                "src/joystick/hidapi/SDL_hidapi_combined.c",
+                "src/joystick/hidapi/SDL_hidapi_gamecube.c",
+                "src/joystick/hidapi/SDL_hidapi_luna.c",
+                "src/joystick/hidapi/SDL_hidapi_ps3.c",
+                "src/joystick/hidapi/SDL_hidapi_ps4.c",
+                "src/joystick/hidapi/SDL_hidapi_ps5.c",
+                "src/joystick/hidapi/SDL_hidapi_rumble.c",
+                "src/joystick/hidapi/SDL_hidapi_shield.c",
+                "src/joystick/hidapi/SDL_hidapi_stadia.c",
+                "src/joystick/hidapi/SDL_hidapi_steam.c",
+                "src/joystick/hidapi/SDL_hidapi_steam_hori.c",
+                "src/joystick/hidapi/SDL_hidapi_steamdeck.c",
+                "src/joystick/hidapi/SDL_hidapi_switch.c",
+                "src/joystick/hidapi/SDL_hidapi_wii.c",
+                "src/joystick/hidapi/SDL_hidapi_xbox360.c",
+                "src/joystick/hidapi/SDL_hidapi_xbox360w.c",
+                "src/joystick/hidapi/SDL_hidapi_xboxone.c",
+                "src/joystick/hidapi/SDL_hidapijoystick.c",
+                "src/joystick/apple/SDL_mfijoystick.m",
+                "src/joystick/darwin/SDL_iokitjoystick.c",
                 "src/haptic/darwin/SDL_syshaptic.c",
                 "src/power/macos/SDL_syspower.c",
                 "src/locale/macos/SDL_syslocale.m",
@@ -1329,16 +1293,6 @@ pub fn build(b: *std.Build) void {
                 "src/main/generic/SDL_sysmain_callbacks.c",
             },
         });
-
-        if (joystick_support) {
-            sdl_mod.addCSourceFiles(.{
-                .flags = sdl_c_flags.slice(),
-                .files = &.{
-                    "src/joystick/apple/SDL_mfijoystick.m",
-                    "src/joystick/darwin/SDL_iokitjoystick.c",
-                },
-            });
-        }
     }
     if (emscripten) {
         sdl_mod.addCSourceFiles(.{
@@ -1348,6 +1302,7 @@ pub fn build(b: *std.Build) void {
                 "src/audio/disk/SDL_diskaudio.c",
                 "src/camera/dummy/SDL_camera_dummy.c",
                 "src/loadso/dlopen/SDL_sysloadso.c",
+                "src/joystick/virtual/SDL_virtualjoystick.c",
                 "src/video/dummy/SDL_nullevents.c",
                 "src/video/dummy/SDL_nullframebuffer.c",
                 "src/video/dummy/SDL_nullvideo.c",
@@ -1358,6 +1313,7 @@ pub fn build(b: *std.Build) void {
                 "src/filesystem/emscripten/SDL_sysfilesystem.c",
                 "src/filesystem/posix/SDL_sysfsops.c",
                 "src/camera/emscripten/SDL_camera_emscripten.c",
+                "src/joystick/emscripten/SDL_sysjoystick.c",
                 "src/power/emscripten/SDL_syspower.c",
                 "src/locale/emscripten/SDL_syslocale.c",
                 "src/time/unix/SDL_systime.c",
@@ -1383,15 +1339,6 @@ pub fn build(b: *std.Build) void {
                 "src/tray/dummy/SDL_tray.c",
             },
         });
-        if (joystick_support) {
-            sdl_mod.addCSourceFiles(.{
-                .flags = sdl_c_flags.slice(),
-                .files = &.{
-                    "src/joystick/virtual/SDL_virtualjoystick.c",
-                    "src/joystick/emscripten/SDL_sysjoystick.c",
-                },
-            });
-        }
         if (emscripten_pthreads) {
             sdl_mod.addCSourceFiles(.{
                 .flags = sdl_c_flags.slice(),
@@ -1425,7 +1372,6 @@ pub fn build(b: *std.Build) void {
     }
 
     if (android) {
-        android_tools.?.setLibCFile(sdl_lib);
         sdl_mod.linkSystemLibrary("dl", .{});
         sdl_mod.linkSystemLibrary("GLESv1_CM", .{});
         sdl_mod.linkSystemLibrary("GLESv2", .{});
@@ -1617,14 +1563,3 @@ const LinuxDepsValues = struct {
         };
     }
 };
-
-pub fn getAndroidTriple(target: std.Build.ResolvedTarget) []const u8 {
-    return switch (target.result.cpu.arch) {
-        .x86 => "i686-linux-android",
-        .x86_64 => "x86_64-linux-android",
-        .arm => "arm-linux-androideabi",
-        .aarch64 => "aarch64-linux-android",
-        .riscv64 => "riscv64-linux-android",
-        else => unreachable,
-    };
-}
