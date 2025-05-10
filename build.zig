@@ -995,8 +995,9 @@ pub fn build(b: *std.Build) void {
             .build_tools_version = "35.0.1",
             .ndk_version = "29.0.13113456",
         });
+        const android_triple = getAndroidTriple(target);
         sdl_mod.addIncludePath(.{ .cwd_relative = android_tools.include_path });
-        sdl_mod.addLibraryPath(.{ .cwd_relative = b.pathJoin(&.{ android_tools.ndk_sysroot_path, "usr", "lib" }) });
+        sdl_mod.addLibraryPath(.{ .cwd_relative = b.pathJoin(&.{ android_tools.ndk_sysroot_path, "usr", "lib", android_triple }) });
 
         sdl_mod.addCSourceFiles(.{
             .flags = sdl_c_flags.slice(),
@@ -1577,3 +1578,14 @@ const LinuxDepsValues = struct {
         };
     }
 };
+
+pub fn getAndroidTriple(target: std.Build.ResolvedTarget) []const u8 {
+    return switch (target.result.cpu.arch) {
+        .x86 => "i686-linux-android",
+        .x86_64 => "x86_64-linux-android",
+        .arm => "arm-linux-androideabi",
+        .aarch64 => "aarch64-linux-android",
+        .riscv64 => "riscv64-linux-android",
+        else => unreachable,
+    };
+}
