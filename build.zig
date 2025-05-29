@@ -45,6 +45,11 @@ pub fn build(b: *std.Build) void {
         "install_build_config_h",
         "Additionally install 'SDL_build_config.h' when installing SDL (default: false)",
     ) orelse false;
+    const disable_c_sanitizer = b.option(
+        bool,
+        "disable_c_sanitizer",
+        "Disable the sanitizer for C code",
+    );
 
     var windows = false;
     var linux = false;
@@ -545,6 +550,7 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
         .strip = strip,
         .pic = pic,
+        .sanitize_c = if (disable_c_sanitizer) |disable| !disable else null,
     });
     const sdl_lib = b.addLibrary(.{
         .linkage = if (emscripten) .static else preferred_linkage,
@@ -807,6 +813,7 @@ pub fn build(b: *std.Build) void {
                 .link_libc = true,
                 .strip = strip,
                 .pic = pic,
+                .sanitize_c = if (disable_c_sanitizer) |disable| !disable else null,
             });
             const sdl_uclibc_lib = b.addLibrary(.{
                 .linkage = .static,
@@ -1293,6 +1300,7 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
         .strip = strip,
         .pic = pic,
+        .sanitize_c = if (disable_c_sanitizer) |disable| !disable else null,
     });
     const sdl_test_lib = b.addLibrary(.{
         .linkage = .static,
