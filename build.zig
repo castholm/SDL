@@ -76,6 +76,7 @@ pub fn build(b: *std.Build) void {
     ) orelse false;
 
     var windows = false;
+    var windows_gnu = false;
     var linux = false;
     var linux_deps_values: ?LinuxDepsValues = null;
     var macos = false;
@@ -88,6 +89,7 @@ pub fn build(b: *std.Build) void {
     switch (target.result.os.tag) {
         .windows => {
             windows = true;
+            windows_gnu = target.result.abi.isGnu();
         },
         .linux => {
             linux = true;
@@ -148,7 +150,7 @@ pub fn build(b: *std.Build) void {
             .HAVE_SIGNAL_H = windows or linux or macos or emscripten,
             .HAVE_STDIO_H = windows or linux or macos or emscripten,
             .HAVE_STDLIB_H = windows or linux or macos or emscripten,
-            .HAVE_STRINGS_H = windows or linux or macos or emscripten,
+            .HAVE_STRINGS_H = (windows and windows_gnu) or linux or macos or emscripten,
             .HAVE_STRING_H = windows or linux or macos or emscripten,
             .HAVE_SYS_TYPES_H = windows or linux or macos or emscripten,
             .HAVE_WCHAR_H = windows or linux or macos or emscripten,
@@ -187,8 +189,8 @@ pub fn build(b: *std.Build) void {
             .HAVE_STRRCHR = windows or linux or macos or emscripten,
             .HAVE_STRSTR = windows or linux or macos or emscripten,
             .HAVE_STRNSTR = macos,
-            .HAVE_STRTOK_R = windows or linux or macos or emscripten,
-            .HAVE_ITOA = windows,
+            .HAVE_STRTOK_R = (windows and windows_gnu) or linux or macos or emscripten,
+            .HAVE_ITOA = (windows and windows_gnu),
             .HAVE__LTOA = windows,
             .HAVE__UITOA = false,
             .HAVE__ULTOA = windows,
@@ -304,7 +306,7 @@ pub fn build(b: *std.Build) void {
             .HAVE_DXGI1_6_H = windows,
             .HAVE_MMDEVICEAPI_H = windows,
             .HAVE_TPCSHRD_H = windows,
-            .HAVE_ROAPI_H = windows,
+            .HAVE_ROAPI_H = (windows and windows_gnu),
             .HAVE_SHELLSCALINGAPI_H = windows,
             .USE_POSIX_SPAWN = false,
             .SDL_DEFAULT_ASSERT_LEVEL_CONFIGURED = false,
