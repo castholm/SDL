@@ -639,7 +639,8 @@ pub fn build(b: *std.Build) void {
         sdl_mod.addLibraryPath(path);
     }
 
-    var sdl_c_flags: std.BoundedArray([]const u8, common_c_flags.len + 3) = .{};
+    var buffer: [common_c_flags.len + 3][]const u8 = undefined;
+    var sdl_c_flags = std.ArrayListUnmanaged([]const u8).initBuffer(&buffer);
     sdl_c_flags.appendSliceAssumeCapacity(&common_c_flags);
     if (sdl_lib.linkage.? == .dynamic) {
         sdl_c_flags.appendAssumeCapacity("-fvisibility=hidden");
@@ -656,7 +657,7 @@ pub fn build(b: *std.Build) void {
     }
 
     sdl_mod.addCSourceFiles(.{
-        .flags = sdl_c_flags.slice(),
+        .flags = sdl_c_flags.items,
         .files = &.{
             "src/SDL.c",
             "src/SDL_assert.c",
@@ -829,7 +830,7 @@ pub fn build(b: *std.Build) void {
     switch (sdl_lib.linkage.?) {
         .static => {
             sdl_mod.addCSourceFiles(.{
-                .flags = sdl_c_flags.slice(),
+                .flags = sdl_c_flags.items,
                 .files = &sdl_uclibc_c_files,
             });
         },
@@ -872,7 +873,7 @@ pub fn build(b: *std.Build) void {
 
     if (windows) {
         sdl_mod.addCSourceFiles(.{
-            .flags = sdl_c_flags.slice(),
+            .flags = sdl_c_flags.items,
             .files = &.{
                 "src/audio/dummy/SDL_dummyaudio.c",
                 "src/audio/disk/SDL_diskaudio.c",
@@ -977,7 +978,7 @@ pub fn build(b: *std.Build) void {
     }
     if (linux) {
         sdl_mod.addCSourceFiles(.{
-            .flags = sdl_c_flags.slice(),
+            .flags = sdl_c_flags.items,
             .files = &.{
                 "src/audio/dummy/SDL_dummyaudio.c",
                 "src/audio/disk/SDL_diskaudio.c",
@@ -1101,7 +1102,7 @@ pub fn build(b: *std.Build) void {
         });
         if (linux_deps_values) |deps_values| {
             sdl_mod.addCSourceFiles(.{
-                .flags = sdl_c_flags.slice(),
+                .flags = sdl_c_flags.items,
                 .root = deps_values.dependency.path("."),
                 .files = deps_values.wayland_c_files,
             });
@@ -1109,7 +1110,7 @@ pub fn build(b: *std.Build) void {
     }
     if (macos) {
         sdl_mod.addCSourceFiles(.{
-            .flags = sdl_c_flags.slice(),
+            .flags = sdl_c_flags.items,
             .files = &.{
                 "src/audio/dummy/SDL_dummyaudio.c",
                 "src/audio/disk/SDL_diskaudio.c",
@@ -1190,7 +1191,7 @@ pub fn build(b: *std.Build) void {
     }
     if (emscripten) {
         sdl_mod.addCSourceFiles(.{
-            .flags = sdl_c_flags.slice(),
+            .flags = sdl_c_flags.items,
             .files = &.{
                 "src/audio/dummy/SDL_dummyaudio.c",
                 "src/audio/disk/SDL_diskaudio.c",
@@ -1235,7 +1236,7 @@ pub fn build(b: *std.Build) void {
         });
         if (emscripten_pthreads) {
             sdl_mod.addCSourceFiles(.{
-                .flags = sdl_c_flags.slice(),
+                .flags = sdl_c_flags.items,
                 .files = &.{
                     "src/thread/pthread/SDL_systhread.c",
                     "src/thread/pthread/SDL_sysmutex.c",
@@ -1247,7 +1248,7 @@ pub fn build(b: *std.Build) void {
             });
         } else {
             sdl_mod.addCSourceFiles(.{
-                .flags = sdl_c_flags.slice(),
+                .flags = sdl_c_flags.items,
                 .files = &.{
                     "src/thread/generic/SDL_syscond.c",
                     "src/thread/generic/SDL_sysmutex.c",
