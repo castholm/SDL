@@ -52,7 +52,7 @@ Example projects using this SDL package:
 <tr><td><code>aarch64-macos-none</code><td align=center>❌<td align=center>❌<td align=center>🉑
 <tr><td><code>wasm32-emscripten-musl</code><td align=center>🉑<td align=center>🉑<td align=center>🉑
 <tbody>
-<tr><th colspan=4 align=left>Second-class targets (not as thorougly tested)
+<tr><th colspan=4 align=left>Second-class targets (not quite as thoroughly tested)
 <tr><td><code>aarch64-windows-gnu</code><td align=center>✅<td align=center>✅<td align=center>✅
 <tr><td><code>x86_64-windows-msvc</code><td align=center>🉑<td align=center>❌<td align=center>❌
 <tr><td><code>aarch64-windows-msvc</code><td align=center>🉑<td align=center>❌<td align=center>❌

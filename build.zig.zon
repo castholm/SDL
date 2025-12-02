@@ -3,7 +3,7 @@
 
 .{
     .name = .sdl,
-    .version = "0.3.2+3.2.26",
+    .version = "0.3.3+3.2.28",
     .fingerprint = 0xec638ccbf427e2ee,
     .minimum_zig_version = "0.15.2",
     .dependencies = .{
