@@ -23,6 +23,7 @@
 
 #ifdef SDL_GPU_D3D12
 
+#include "../../events/SDL_windowevents_c.h"
 #include "../../core/windows/SDL_windows.h"
 #include "../../video/directx/SDL_d3d12.h"
 #include "../SDL_sysgpu.h"
@@ -5884,6 +5885,7 @@ static void D3D12_UploadToTexture(
     Uint32 alignedRowPitch;
     Uint32 rowsPerSlice = source->rows_per_layer;
     Uint32 bytesPerSlice;
+    Uint32 alignedBytesPerSlice;
     bool needsRealignment;
     bool needsPlacementCopy;
 
@@ -5921,9 +5923,12 @@ static void D3D12_UploadToTexture(
 
     bytesPerSlice = rowsPerSlice * rowPitch;
 
-    alignedRowPitch = D3D12_INTERNAL_Align(rowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+    alignedRowPitch = BytesPerRow(destination->w, textureContainer->header.info.format);
+    alignedRowPitch = D3D12_INTERNAL_Align(alignedRowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
     needsRealignment = rowsPerSlice != destination->h || rowPitch != alignedRowPitch;
     needsPlacementCopy = source->offset % D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT != 0;
+
+    alignedBytesPerSlice = alignedRowPitch * destination->h;
 
     sourceLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
     sourceLocation.PlacedFootprint.Footprint.Format = SDLToD3D12_TextureFormat[textureContainer->header.info.format];
@@ -5949,22 +5954,25 @@ static void D3D12_UploadToTexture(
 
         for (Uint32 sliceIndex = 0; sliceIndex < destination->d; sliceIndex += 1) {
             // copy row count minus one to avoid overread
-            for (Uint32 rowIndex = 0; rowIndex < rowsPerSlice - 1; rowIndex += 1) {
+            for (Uint32 rowIndex = 0; rowIndex < destination->h - 1; rowIndex += 1) {
+
                 SDL_memcpy(
-                    temporaryBuffer->mapPointer + (sliceIndex * rowsPerSlice) + (rowIndex * alignedRowPitch),
+                    temporaryBuffer->mapPointer + (sliceIndex * alignedBytesPerSlice) + (rowIndex * alignedRowPitch),
                     transferBufferContainer->activeBuffer->mapPointer + source->offset + (sliceIndex * bytesPerSlice) + (rowIndex * rowPitch),
-                    rowPitch);
+                    alignedRowPitch);
+
             }
-            Uint32 offset = source->offset + (sliceIndex * bytesPerSlice) + ((rowsPerSlice - 1) * rowPitch);
+            Uint32 offset = source->offset + (sliceIndex * bytesPerSlice) + ((destination->h - 1) * rowPitch);
+
             SDL_memcpy(
-                temporaryBuffer->mapPointer + (sliceIndex * rowsPerSlice) + ((rowsPerSlice - 1) * alignedRowPitch),
+                temporaryBuffer->mapPointer + (sliceIndex * alignedBytesPerSlice) + ((destination->h - 1) * alignedRowPitch),
                 transferBufferContainer->activeBuffer->mapPointer + offset,
                 SDL_min(alignedRowPitch, transferBufferContainer->size - offset));
 
             sourceLocation.PlacedFootprint.Footprint.Width = destination->w;
-            sourceLocation.PlacedFootprint.Footprint.Height = rowsPerSlice;
+            sourceLocation.PlacedFootprint.Footprint.Height = destination->h;
             sourceLocation.PlacedFootprint.Footprint.Depth = 1;
-            sourceLocation.PlacedFootprint.Offset = (sliceIndex * bytesPerSlice);
+            sourceLocation.PlacedFootprint.Offset = (sliceIndex * alignedBytesPerSlice);
 
             ID3D12GraphicsCommandList_CopyTextureRegion(
                 d3d12CommandBuffer->graphicsCommandList,
@@ -6001,7 +6009,7 @@ static void D3D12_UploadToTexture(
         sourceLocation.PlacedFootprint.Offset = 0;
         sourceLocation.PlacedFootprint.Footprint.Width = destination->w;
         sourceLocation.PlacedFootprint.Footprint.Height = destination->h;
-        sourceLocation.PlacedFootprint.Footprint.Depth = 1;
+        sourceLocation.PlacedFootprint.Footprint.Depth = destination->d;
 
         ID3D12GraphicsCommandList_CopyTextureRegion(
             d3d12CommandBuffer->graphicsCommandList,
@@ -7048,7 +7056,7 @@ static bool D3D12_ClaimWindow(
             renderer->claimedWindowCount += 1;
             SDL_UnlockMutex(renderer->windowLock);
 
-            SDL_AddEventWatch(D3D12_INTERNAL_OnWindowResize, window);
+            SDL_AddWindowEventWatch(SDL_WINDOW_EVENT_WATCH_NORMAL, D3D12_INTERNAL_OnWindowResize, window);
 
             return true;
         } else {
@@ -7096,7 +7104,7 @@ static void D3D12_ReleaseWindow(
 
     SDL_free(windowData);
     SDL_ClearProperty(SDL_GetWindowProperties(window), WINDOW_PROPERTY_DATA);
-    SDL_RemoveEventWatch(D3D12_INTERNAL_OnWindowResize, window);
+    SDL_RemoveWindowEventWatch(SDL_WINDOW_EVENT_WATCH_NORMAL, D3D12_INTERNAL_OnWindowResize, window);
 }
 
 static bool D3D12_SetSwapchainParameters(

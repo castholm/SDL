@@ -24,6 +24,7 @@
 #ifdef SDL_VIDEO_DRIVER_WAYLAND
 
 #include "../../core/linux/SDL_system_theme.h"
+#include "../../core/unix/SDL_gtk.h"
 #include "../../events/SDL_events_c.h"
 
 #include "SDL_waylandclipboard.h"
@@ -1056,8 +1057,6 @@ static void display_handle_done(void *data,
         AddEmulatedModes(internal, native_mode.w, native_mode.h);
     }
 
-    SDL_SetDisplayHDRProperties(dpy, &internal->HDR);
-
     if (internal->display == 0) {
         // First time getting display info, initialize the VideoDisplay
         if (internal->physical_width_mm >= internal->physical_height_mm) {
@@ -1070,6 +1069,9 @@ static void display_handle_done(void *data,
 
         // During initialization, the displays will be added after enumeration is complete.
         if (!video->initializing) {
+            if (video->wp_color_manager_v1) {
+                Wayland_GetColorInfoForOutput(internal, false);
+            }
             internal->display = SDL_AddVideoDisplay(&internal->placeholder, true);
             SDL_free(internal->placeholder.name);
             SDL_zero(internal->placeholder);
@@ -1119,7 +1121,6 @@ static void handle_output_image_description_changed(void *data,
                                                     struct wp_color_management_output_v1 *wp_color_management_output_v1)
 {
     SDL_DisplayData *display = (SDL_DisplayData *)data;
-    // wl_display.done is called after this event, so the display HDR status will be updated there.
     Wayland_GetColorInfoForOutput(display, false);
 }
 
@@ -1159,7 +1160,11 @@ static bool Wayland_add_display(SDL_VideoData *d, uint32_t id, uint32_t version)
     if (data->videodata->wp_color_manager_v1) {
         data->wp_color_management_output = wp_color_manager_v1_get_output(data->videodata->wp_color_manager_v1, output);
         wp_color_management_output_v1_add_listener(data->wp_color_management_output, &wp_color_management_output_listener, data);
-        Wayland_GetColorInfoForOutput(data, true);
+
+        // If not initializing, this will be queried synchronously in wl_output.done.
+        if (d->initializing) {
+            Wayland_GetColorInfoForOutput(data, true);
+        }
     }
     return true;
 }
@@ -1376,6 +1381,19 @@ static bool should_use_libdecor(SDL_VideoData *data, bool ignore_xdg)
 
     return true;
 }
+
+static void LibdecorNew(SDL_VideoData *data)
+{
+    data->shell.libdecor = libdecor_new(data->display, &libdecor_interface);
+}
+
+// Called in another thread, but the UI thread is blocked in SDL_WaitThread
+// during that time, so it should be OK to dereference data without locks
+static int SDLCALL LibdecorNewInThread(void *data)
+{
+    LibdecorNew((SDL_VideoData *)data);
+    return 0;
+}
 #endif
 
 bool Wayland_LoadLibdecor(SDL_VideoData *data, bool ignore_xdg)
@@ -1385,7 +1403,18 @@ bool Wayland_LoadLibdecor(SDL_VideoData *data, bool ignore_xdg)
         return true; // Already loaded!
     }
     if (should_use_libdecor(data, ignore_xdg)) {
-        data->shell.libdecor = libdecor_new(data->display, &libdecor_interface);
+        if (SDL_CanUseGtk()) {
+            LibdecorNew(data);
+        } else {
+            // Intentionally initialize libdecor in a non-main thread
+            // so that it will not use its GTK plugin, but instead will
+            // fall back to the Cairo or dummy plugin
+            SDL_Thread *thread = SDL_CreateThread(LibdecorNewInThread, "SDL_LibdecorNew", (void *)data);
+            // Note that the other thread now "owns" data until we have
+            // waited for it, so don't touch data here
+            SDL_WaitThread(thread, NULL);
+        }
+
         return data->shell.libdecor != NULL;
     }
 #endif

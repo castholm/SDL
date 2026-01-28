@@ -32,6 +32,7 @@
 #include <SDL3/SDL_vulkan.h>
 
 #include "../SDL_sysgpu.h"
+#include "../../events/SDL_windowevents_c.h"
 
 #define VULKAN_INTERNAL_clamp(val, min, max) SDL_max(min, SDL_min(val, max))
 
@@ -4400,7 +4401,9 @@ static bool VULKAN_INTERNAL_QuerySwapchainSupport(
         &supportsPresent);
 
     // Initialize these in case anything fails
+    outputDetails->formats = NULL;
     outputDetails->formatsLength = 0;
+    outputDetails->presentModes = NULL;
     outputDetails->presentModesLength = 0;
 
     if (!supportsPresent) {
@@ -4423,22 +4426,33 @@ static bool VULKAN_INTERNAL_QuerySwapchainSupport(
         surface,
         &outputDetails->formatsLength,
         NULL);
-    CHECK_VULKAN_ERROR_AND_RETURN(result, vkGetPhysicalDeviceSurfaceFormatsKHR, false);
+    if (result != VK_SUCCESS) {
+        // Make sure the driver didn't mess up this value.
+        outputDetails->formatsLength = 0;
+        CHECK_VULKAN_ERROR_AND_RETURN(result, vkGetPhysicalDeviceSurfaceFormatsKHR, false);
+    }
     result = renderer->vkGetPhysicalDeviceSurfacePresentModesKHR(
         physicalDevice,
         surface,
         &outputDetails->presentModesLength,
         NULL);
-    CHECK_VULKAN_ERROR_AND_RETURN(result, vkGetPhysicalDeviceSurfacePresentModesKHR, false);
+    if (result != VK_SUCCESS) {
+        // Make sure the driver didn't mess up this value.
+        outputDetails->presentModesLength = 0;
+        // Reset this one, too.
+        outputDetails->formatsLength = 0;
+        CHECK_VULKAN_ERROR_AND_RETURN(result, vkGetPhysicalDeviceSurfacePresentModesKHR, false);
+    }
 
     // Generate the arrays, if applicable
 
-    outputDetails->formats = NULL;
     if (outputDetails->formatsLength != 0) {
         outputDetails->formats = (VkSurfaceFormatKHR *)SDL_malloc(
             sizeof(VkSurfaceFormatKHR) * outputDetails->formatsLength);
 
         if (!outputDetails->formats) { // OOM
+            outputDetails->formatsLength = 0;
+            outputDetails->presentModesLength = 0;
             return false;
         }
 
@@ -4449,17 +4463,22 @@ static bool VULKAN_INTERNAL_QuerySwapchainSupport(
             outputDetails->formats);
         if (result != VK_SUCCESS) {
             SDL_free(outputDetails->formats);
+            outputDetails->formats = NULL;
+            outputDetails->formatsLength = 0;
+            outputDetails->presentModesLength = 0;
             CHECK_VULKAN_ERROR_AND_RETURN(result, vkGetPhysicalDeviceSurfaceFormatsKHR, false);
         }
     }
 
-    outputDetails->presentModes = NULL;
     if (outputDetails->presentModesLength != 0) {
         outputDetails->presentModes = (VkPresentModeKHR *)SDL_malloc(
             sizeof(VkPresentModeKHR) * outputDetails->presentModesLength);
 
         if (!outputDetails->presentModes) { // OOM
             SDL_free(outputDetails->formats);
+            outputDetails->formats = NULL;
+            outputDetails->formatsLength = 0;
+            outputDetails->presentModesLength = 0;
             return false;
         }
 
@@ -4471,6 +4490,10 @@ static bool VULKAN_INTERNAL_QuerySwapchainSupport(
         if (result != VK_SUCCESS) {
             SDL_free(outputDetails->formats);
             SDL_free(outputDetails->presentModes);
+            outputDetails->formats = NULL;
+            outputDetails->presentModes = NULL;
+            outputDetails->formatsLength = 0;
+            outputDetails->presentModesLength = 0;
             CHECK_VULKAN_ERROR_AND_RETURN(result, vkGetPhysicalDeviceSurfacePresentModesKHR, false);
         }
     }
@@ -4559,12 +4582,6 @@ static Uint32 VULKAN_INTERNAL_CreateSwapchain(
             windowData->surface,
             NULL);
         windowData->surface = VK_NULL_HANDLE;
-        if (swapchainSupportDetails.formatsLength > 0) {
-            SDL_free(swapchainSupportDetails.formats);
-        }
-        if (swapchainSupportDetails.presentModesLength > 0) {
-            SDL_free(swapchainSupportDetails.presentModes);
-        }
         return false;
     }
 
@@ -9825,7 +9842,7 @@ static bool VULKAN_ClaimWindow(
             renderer->claimedWindowCount += 1;
             SDL_UnlockMutex(renderer->windowLock);
 
-            SDL_AddEventWatch(VULKAN_INTERNAL_OnWindowResize, window);
+            SDL_AddWindowEventWatch(SDL_WINDOW_EVENT_WATCH_NORMAL, VULKAN_INTERNAL_OnWindowResize, window);
 
             return true;
         } else if (createSwapchainResult == VULKAN_INTERNAL_TRY_AGAIN) {
@@ -9880,7 +9897,7 @@ static void VULKAN_ReleaseWindow(
     SDL_free(windowData);
 
     SDL_ClearProperty(SDL_GetWindowProperties(window), WINDOW_PROPERTY_DATA);
-    SDL_RemoveEventWatch(VULKAN_INTERNAL_OnWindowResize, window);
+    SDL_RemoveWindowEventWatch(SDL_WINDOW_EVENT_WATCH_NORMAL, VULKAN_INTERNAL_OnWindowResize, window);
 }
 
 static Uint32 VULKAN_INTERNAL_RecreateSwapchain(
@@ -10787,8 +10804,6 @@ static bool VULKAN_INTERNAL_DefragmentMemory(
         VulkanMemoryUsedRegion *currentRegion = allocation->usedRegions[i];
 
         if (currentRegion->isBuffer && !currentRegion->vulkanBuffer->markedForDestroy) {
-            currentRegion->vulkanBuffer->usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
             VulkanBuffer *newBuffer = VULKAN_INTERNAL_CreateBuffer(
                 renderer,
                 currentRegion->vulkanBuffer->size,
