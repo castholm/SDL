@@ -3,7 +3,7 @@
 
 const std = @import("std");
 
-pub const version: std.SemanticVersion = .{ .major = 3, .minor = 2, .patch = 28 };
+pub const version: std.SemanticVersion = .{ .major = 3, .minor = 2, .patch = 30 };
 const formatted_version = std.fmt.comptimePrint("SDL-{f}", .{version});
 pub const vendor_info = "https://github.com/castholm/SDL 0.3.3";
 pub const revision = formatted_version ++ " (" ++ vendor_info ++ ")";
