@@ -12,6 +12,10 @@
             .hash = "sdl_linux_deps-0.0.0-SDL_ltg8hgAOayMwFN6BhHW3Rs5UPtf6n8m-2qcQHuGS",
             .lazy = true,
         },
+        .xcode_frameworks = .{
+            .url = "git+https://codeberg.org/brodo/xcode-frameworks#5409ad866587de1b5670c2e94dfe46a95230d3e2",
+            .hash = "xcode_frameworks-0.0.0-VCh8grYYXAfTa0GCiNcepI3xiZ6cvS3-_TwbJw_4MJuG",
+        },
     },
     .paths = .{
         "include/",

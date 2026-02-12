@@ -64,8 +64,6 @@ pub fn build(b: *std.Build) void {
     var macos = false;
     var emscripten = false;
     var system_include_path: ?std.Build.LazyPath = null;
-    var system_framework_path: ?std.Build.LazyPath = null;
-    var library_path: ?std.Build.LazyPath = null;
     var msvc = false; // Assume mingw-w64 as the default for Windows
     var musl = false; // Assume glibc as the default for Linux
     switch (target.result.os.tag) {
@@ -82,14 +80,6 @@ pub fn build(b: *std.Build) void {
         },
         .macos => {
             macos = true;
-            if (b.sysroot) |sysroot| {
-                system_include_path = .{ .cwd_relative = b.pathJoin(&.{ sysroot, "usr/include" }) };
-                system_framework_path = .{ .cwd_relative = b.pathJoin(&.{ sysroot, "System/Library/Frameworks" }) };
-                library_path = .{ .cwd_relative = "/usr/lib" }; // ???
-            } else if (!target.query.isNative()) {
-                std.log.err("'--sysroot' is required when building SDL for non-native macOS targets", .{});
-                std.process.exit(1);
-            }
         },
         .emscripten => {
             emscripten = true;
@@ -661,6 +651,21 @@ pub fn build(b: *std.Build) void {
         sdl_mod.addCMacro("_REENTRANT", "1");
     }
 
+    if(macos) {
+        const xcode_frameworks = b.dependency("xcode_frameworks", .{});
+        sdl_mod.addFrameworkPath(xcode_frameworks.path("Frameworks"));
+        sdl_mod.addSystemIncludePath(xcode_frameworks.path("include"));
+        sdl_mod.linkFramework("AVFoundation", .{});
+        sdl_mod.linkFramework("CoreFoundation", .{});
+        sdl_mod.linkFramework("CoreHaptics", .{});
+        sdl_mod.linkFramework("CoreLocation", .{});
+        sdl_mod.linkFramework("CoreMedia", .{});
+        sdl_mod.linkFramework("ForceFeedback", .{});
+        sdl_mod.linkFramework("Foundation", .{});
+        sdl_mod.linkFramework("IOKit", .{});
+        sdl_mod.linkFramework("UniformTypeIdentifiers", .{});
+    }
+
     sdl_mod.addConfigHeader(build_config_h);
     sdl_mod.addConfigHeader(revision_h);
     sdl_mod.addIncludePath(b.path("include"));
@@ -686,14 +691,8 @@ pub fn build(b: *std.Build) void {
     if (system_include_path) |path| {
         sdl_mod.addSystemIncludePath(path);
     }
-    if (system_framework_path) |path| {
-        sdl_mod.addSystemFrameworkPath(path);
-    }
-    if (library_path) |path| {
-        sdl_mod.addLibraryPath(path);
-    }
 
-    var sdl_c_flags_buf: [common_c_flags.len + 3][]const u8 = undefined;
+    var sdl_c_flags_buf: [common_c_flags.len + 6][]const u8 = undefined;
     var sdl_c_flags: std.ArrayList([]const u8) = .initBuffer(&sdl_c_flags_buf);
     sdl_c_flags.appendSliceAssumeCapacity(&common_c_flags);
     if (sdl_lib.linkage.? == .dynamic) {
@@ -705,6 +704,10 @@ pub fn build(b: *std.Build) void {
     if (macos) {
         sdl_c_flags.appendAssumeCapacity("-pthread");
         sdl_c_flags.appendAssumeCapacity("-fobjc-arc");
+        sdl_c_flags.appendAssumeCapacity("-Wno-undef");
+        sdl_c_flags.appendAssumeCapacity("-Wno-deprecated-declarations");
+        sdl_c_flags.appendAssumeCapacity("-Wno-availability");
+        sdl_c_flags.appendAssumeCapacity("-Wno-unguarded-availability-new");
     }
     if (emscripten and emscripten_pthreads) {
         sdl_c_flags.appendAssumeCapacity("-pthread");
@@ -1449,7 +1452,7 @@ pub fn build(b: *std.Build) void {
     }
 
     sdl_test_mod.addCSourceFiles(.{
-        .flags = &common_c_flags,
+        .flags = sdl_c_flags.items,
         .files = &.{
             "src/test/SDL_test_assert.c",
             "src/test/SDL_test_common.c",
