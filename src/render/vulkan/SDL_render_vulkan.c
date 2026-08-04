@@ -891,11 +891,16 @@ static VkResult VULKAN_AllocateImage(VULKAN_RenderData *rendererData, SDL_Proper
     imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
     imageViewCreateInfo.subresourceRange.layerCount = 1;
 
+    VkImageViewUsageCreateInfo imageViewUsageCreateInfo = { 0 };
+    imageViewUsageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO;
+    imageViewUsageCreateInfo.usage = imageUsage;
+    imageViewCreateInfo.pNext = &imageViewUsageCreateInfo;
+
     // If it's a YCbCr image, we need to pass the conversion info to the VkImageView (and the VkSampler)
     if (samplerYcbcrConversion != VK_NULL_HANDLE) {
         samplerYcbcrConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO_KHR;
         samplerYcbcrConversionInfo.conversion = samplerYcbcrConversion;
-        imageViewCreateInfo.pNext = &samplerYcbcrConversionInfo;
+        imageViewUsageCreateInfo.pNext = &samplerYcbcrConversionInfo;
     }
 
     result = vkCreateImageView(rendererData->device, &imageViewCreateInfo, NULL, &imageOut->imageView);
@@ -2060,7 +2065,7 @@ static VkResult VULKAN_CreateFramebuffersAndRenderPasses(SDL_Renderer *renderer,
     VkFramebufferCreateInfo framebufferCreateInfo = { 0 };
     framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferCreateInfo.pNext = NULL;
-    framebufferCreateInfo.renderPass = rendererData->renderPasses[VULKAN_RENDERPASS_LOAD];
+    framebufferCreateInfo.renderPass = renderPasses[VULKAN_RENDERPASS_LOAD];
     framebufferCreateInfo.attachmentCount = 1;
     framebufferCreateInfo.width = w;
     framebufferCreateInfo.height = h;
@@ -2735,8 +2740,8 @@ static bool VULKAN_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture, S
         // Also create VkSampler object which we will need to pass to the PSO as an immutable sampler
         VkSamplerCreateInfo samplerCreateInfo = { 0 };
         samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
-        samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
+        samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+        samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
         samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
         samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -4039,6 +4044,9 @@ static void VULKAN_InvalidateCachedState(SDL_Renderer *renderer)
     VULKAN_RenderData *rendererData = (VULKAN_RenderData *)renderer->internal;
     rendererData->currentPipelineState = NULL;
     rendererData->cliprectDirty = true;
+
+    // Make sure pending drawing is submitted to the GPU
+    VULKAN_IssueBatch(rendererData);
 }
 
 static bool VULKAN_RunCommandQueue(SDL_Renderer *renderer, SDL_RenderCommand *cmd, void *vertices, size_t vertsize)
