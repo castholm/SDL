@@ -101,7 +101,7 @@ pub fn build(b: *std.Build) void {
                 system_framework_path = system_framework_path orelse .{ .cwd_relative = b.pathJoin(&.{ sysroot, "System/Library/Frameworks" }) };
                 library_path = library_path orelse .{ .cwd_relative = "/usr/lib" }; // ???
             }
-            if (!target.query.isNative() and !(system_include_path == null and system_framework_path == null and library_path == null)) {
+            if (!target.query.isNative() and (system_include_path == null or system_framework_path == null or library_path == null)) {
                 std.log.err("'-Dsystem_include_path', '-Dsystem_framework_path' and '-Dlibrary_path' are required when building SDL for non-native macOS targets", .{});
                 std.process.exit(1);
             }

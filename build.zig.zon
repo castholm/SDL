@@ -3,13 +3,13 @@
 
 .{
     .name = .sdl,
-    .version = "0.5.2+3.4.12",
+    .version = "0.5.3+3.4.14",
     .fingerprint = 0xec638ccbfafe3248,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{
         .sdl_linux_deps = .{
-            .url = "git+https://github.com/castholm/SDL_linux_deps.git#fd349940b9dbaa0f221703b05df826d745d7ce2a",
-            .hash = "sdl_linux_deps-0.0.0-SDL_ltg8hgAOayMwFN6BhHW3Rs5UPtf6n8m-2qcQHuGS",
+            .url = "git+https://github.com/castholm/SDL_linux_deps.git#86b2445cce38b014efeebcb0f3752aff623602fc",
+            .hash = "sdl_linux_deps-0.0.0-SDL_lgR3hgAGRy-98ShWuT1PO5sRJRq1KX_kKeOOPnRj",
             .lazy = true,
         },
     },
