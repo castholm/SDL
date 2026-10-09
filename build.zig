@@ -80,6 +80,7 @@ pub fn build(b: *std.Build) void {
     var macos = false;
     var emscripten = false;
     var msvc = false; // Assume mingw-w64 as the default for Windows
+    var glibc_2_x: u8 = 0;
     var musl = false; // Assume glibc as the default for Linux
     switch (target.result.os.tag) {
         .windows => {
@@ -90,6 +91,9 @@ pub fn build(b: *std.Build) void {
             linux = true;
             if (b.lazyImport(@This(), "sdl_linux_deps")) |build_zig| {
                 linux_deps_values = LinuxDepsValues.fromBuildZig(b, build_zig);
+            }
+            if (target.result.os.versionRange().gnuLibCVersion()) |v| {
+                if (v.major == 2) glibc_2_x = @min(v.minor, 255);
             }
             musl = target.result.abi.isMusl();
         },
@@ -160,16 +164,16 @@ pub fn build(b: *std.Build) void {
             .HAVE_MEMCMP = windows or linux or macos or emscripten,
             .HAVE_WCSLEN = windows or linux or macos or emscripten,
             .HAVE_WCSNLEN = windows or linux or macos or emscripten,
-            .HAVE_WCSLCPY = macos,
-            .HAVE_WCSLCAT = macos,
+            .HAVE_WCSLCPY = (linux and glibc_2_x >= 38) or macos,
+            .HAVE_WCSLCAT = (linux and glibc_2_x >= 38) or macos,
             .HAVE_WCSSTR = windows or linux or macos or emscripten,
             .HAVE_WCSCMP = windows or linux or macos or emscripten,
             .HAVE_WCSNCMP = windows or linux or macos or emscripten,
             .HAVE_WCSTOL = windows or linux or macos or emscripten,
             .HAVE_STRLEN = windows or linux or macos or emscripten,
             .HAVE_STRNLEN = windows or linux or macos or emscripten,
-            .HAVE_STRLCPY = (linux and musl) or macos or emscripten,
-            .HAVE_STRLCAT = (linux and musl) or macos or emscripten,
+            .HAVE_STRLCPY = (linux and (musl or glibc_2_x >= 38)) or macos or emscripten,
+            .HAVE_STRLCAT = (linux and (musl or glibc_2_x >= 38)) or macos or emscripten,
             .HAVE_STRPBRK = windows or linux or macos or emscripten,
             .HAVE__STRREV = windows,
             .HAVE_INDEX = linux or macos or emscripten,
@@ -250,7 +254,7 @@ pub fn build(b: *std.Build) void {
             .HAVE_FOPEN64 = (windows and !msvc) or (linux and !musl) or emscripten,
             .HAVE_FSEEKO = (windows and !msvc) or linux or macos or emscripten,
             .HAVE_FSEEKO64 = (windows and !msvc) or (linux and !musl) or emscripten,
-            .HAVE_MEMFD_CREATE = linux,
+            .HAVE_MEMFD_CREATE = (linux and glibc_2_x >= 27),
             .HAVE_POSIX_FALLOCATE = linux or emscripten,
             .HAVE_SIGACTION = linux or macos or emscripten,
             .HAVE_SIGTIMEDWAIT = linux or emscripten,
@@ -306,7 +310,7 @@ pub fn build(b: *std.Build) void {
             .HAVE_SHELLSCALINGAPI_H = windows,
             .USE_POSIX_SPAWN = false,
             .HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCHDIR = macos,
-            .HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCHDIR_NP = linux or macos or emscripten,
+            .HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCHDIR_NP = (linux and glibc_2_x >= 29) or macos or emscripten,
             .SDL_DISABLE_DLOPEN_NOTES = false,
             .SDL_DEFAULT_ASSERT_LEVEL_CONFIGURED = false,
             .SDL_DEFAULT_ASSERT_LEVEL = null,
