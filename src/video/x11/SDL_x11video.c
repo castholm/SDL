@@ -472,12 +472,6 @@ void X11_VideoQuit(SDL_VideoDevice *_this)
         X11_XDestroyWindow(data->display, data->xsettings_window);
     }
 
-#ifdef X_HAVE_UTF8_STRING
-    if (data->im) {
-        X11_XCloseIM(data->im);
-    }
-#endif
-
     X11_QuitXinput2(_this);
     X11_QuitModes(_this);
     X11_QuitKeyboard(_this);

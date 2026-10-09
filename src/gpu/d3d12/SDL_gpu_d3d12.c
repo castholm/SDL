@@ -893,6 +893,10 @@ struct D3D12Renderer
     WinPixEventRuntimeFns winpixeventruntimeFns;
 #endif
     ID3D12Debug *d3d12Debug;
+#if !(defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+    ID3D12InfoQueue *debugInfoQueue;
+    BOOL InfoQueueMessageCallbackSupported;
+#endif
     BOOL supportsTearing;
     SDL_SharedObject *d3d12_dll;
     ID3D12Device *device;
@@ -1229,6 +1233,7 @@ static void D3D12_ReleaseWindow(SDL_GPURenderer *driverData, SDL_Window *window)
 static bool D3D12_Wait(SDL_GPURenderer *driverData);
 static bool D3D12_WaitForFences(SDL_GPURenderer *driverData, bool waitAll, SDL_GPUFence *const *fences, Uint32 numFences);
 static void D3D12_INTERNAL_ReleaseBlitPipelines(SDL_GPURenderer *driverData);
+static void D3D12_INTERNAL_DrainInfoQueueMessages(D3D12Renderer *renderer);
 
 // Helpers
 
@@ -1700,6 +1705,10 @@ static void D3D12_INTERNAL_DestroyRenderer(D3D12Renderer *renderer)
         ID3D12CommandQueue_Release(renderer->commandQueue);
         renderer->commandQueue = NULL;
     }
+    if (renderer->debugInfoQueue) {
+        ID3D12InfoQueue_Release(renderer->debugInfoQueue);
+        renderer->debugInfoQueue = NULL;
+    }
     if (renderer->device) {
         ID3D12Device_Release(renderer->device);
         renderer->device = NULL;
@@ -1959,7 +1968,7 @@ static void D3D12_INTERNAL_TextureTransitionToDefaultUsage(
 static D3D12_RESOURCE_STATES D3D12_INTERNAL_DefaultBufferResourceState(
     D3D12Buffer *buffer)
 {
-    D3D12_RESOURCE_STATES states = 0;
+    D3D12_RESOURCE_STATES states = D3D12_RESOURCE_STATE_COMMON;
 
     if (buffer->container->usage & SDL_GPU_BUFFERUSAGE_VERTEX) {
         states |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
@@ -3553,6 +3562,9 @@ static D3D12Texture *D3D12_INTERNAL_CreateTexture(
             srvDesc.Texture3D.MipLevels = createinfo->num_levels;
             srvDesc.Texture3D.MostDetailedMip = 0;
             srvDesc.Texture3D.ResourceMinLODClamp = 0; // default behavior
+        } else if (createinfo->sample_count > SDL_GPU_SAMPLECOUNT_1) {
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+            srvDesc.Texture2DMS.UnusedField_NothingToDefine = 0;
         } else {
             srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
             srvDesc.Texture2D.MipLevels = createinfo->num_levels;
@@ -6041,7 +6053,11 @@ static void D3D12_UploadToTexture(
         needsPlacementCopy = source->offset % D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT != 0;
     }
 
-    alignedBytesPerSlice = alignedRowPitch * destination->h;
+    alignedBytesPerSlice = alignedRowPitch * blockHeight;
+    if (!renderer->UnrestrictedBufferTextureCopyPitchSupported && destination->d > 1 && alignedBytesPerSlice % D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT != 0) {
+        needsRealignment = true;
+        alignedBytesPerSlice = D3D12_INTERNAL_Align(alignedBytesPerSlice, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+    }
 
     sourceLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
     sourceLocation.PlacedFootprint.Footprint.Format = SDLToD3D12_TextureFormat[textureContainer->header.info.format];
@@ -6055,7 +6071,7 @@ static void D3D12_UploadToTexture(
         temporaryBuffer = D3D12_INTERNAL_CreateBuffer(
             d3d12CommandBuffer->renderer,
             0,
-            alignedRowPitch * blockHeight * destination->d,
+            alignedBytesPerSlice * destination->d,
             D3D12_BUFFER_TYPE_UPLOAD,
             NULL);
 
@@ -7957,8 +7973,9 @@ static bool D3D12_INTERNAL_CleanCommandBuffer(
     return true;
 }
 
-static bool D3D12_Submit(
-    SDL_GPUCommandBuffer *commandBuffer)
+static bool D3D12_INTERNAL_Submit(
+    SDL_GPUCommandBuffer *commandBuffer,
+    SDL_GPUFence **fence)
 {
     D3D12CommandBuffer *d3d12CommandBuffer = (D3D12CommandBuffer *)commandBuffer;
     D3D12Renderer *renderer = d3d12CommandBuffer->renderer;
@@ -8010,6 +8027,9 @@ static bool D3D12_Submit(
 
     // Notify the command buffer that we have completed recording
     res = ID3D12GraphicsCommandList_Close(d3d12CommandBuffer->graphicsCommandList);
+#if !(defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+    D3D12_INTERNAL_DrainInfoQueueMessages(renderer);
+#endif
     CHECK_D3D12_ERROR_AND_RETURN("Failed to close command list!", false);
 
     res = ID3D12GraphicsCommandList_QueryInterface(
@@ -8034,6 +8054,12 @@ static bool D3D12_Submit(
     if (!d3d12CommandBuffer->inFlightFence) {
         SDL_UnlockMutex(renderer->submitLock);
         return false;
+    }
+
+    // Return the fence while submitLock is held, another thread could
+    // recycle this command buffer as soon as the lock is released.
+    if (fence) {
+        *fence = (SDL_GPUFence *)d3d12CommandBuffer->inFlightFence;
     }
 
     // Mark that a fence should be signaled after command list execution
@@ -8134,15 +8160,22 @@ static bool D3D12_Submit(
     return result;
 }
 
+static bool D3D12_Submit(
+    SDL_GPUCommandBuffer *commandBuffer)
+{
+    return D3D12_INTERNAL_Submit(commandBuffer, NULL);
+}
+
 static SDL_GPUFence *D3D12_SubmitAndAcquireFence(
     SDL_GPUCommandBuffer *commandBuffer)
 {
     D3D12CommandBuffer *d3d12CommandBuffer = (D3D12CommandBuffer *)commandBuffer;
+    SDL_GPUFence *fence = NULL;
     d3d12CommandBuffer->autoReleaseFence = false;
-    if (!D3D12_Submit(commandBuffer)) {
+    if (!D3D12_INTERNAL_Submit(commandBuffer, &fence)) {
         return NULL;
     }
-    return (SDL_GPUFence *)d3d12CommandBuffer->inFlightFence;
+    return fence;
 }
 
 static bool D3D12_Cancel(
@@ -8155,6 +8188,9 @@ static bool D3D12_Cancel(
 
     // Notify the command buffer that we have completed recording
     res = ID3D12GraphicsCommandList_Close(d3d12CommandBuffer->graphicsCommandList);
+#if !(defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
+    D3D12_INTERNAL_DrainInfoQueueMessages(renderer);
+#endif
     CHECK_D3D12_ERROR_AND_RETURN("Failed to close command list!", false);
 
     d3d12CommandBuffer->autoReleaseFence = false;
@@ -8806,7 +8842,7 @@ static void D3D12_INTERNAL_TryInitializeD3D12DebugInfoQueue(D3D12Renderer *rende
         D3D12_MESSAGE_SEVERITY_CORRUPTION,
         true);
 
-    ID3D12InfoQueue_Release(infoQueue);
+    renderer->debugInfoQueue = infoQueue;
 }
 
 static void WINAPI D3D12_INTERNAL_OnD3D12DebugInfoMsg(
@@ -8901,6 +8937,7 @@ static void WINAPI D3D12_INTERNAL_OnD3D12DebugInfoMsg(
 static void D3D12_INTERNAL_TryInitializeD3D12DebugInfoLogger(D3D12Renderer *renderer)
 {
     ID3D12InfoQueue1 *infoQueue = NULL;
+    DWORD callbackCookie = 0;
     HRESULT res;
 
     res = ID3D12Device_QueryInterface(
@@ -8911,14 +8948,49 @@ static void D3D12_INTERNAL_TryInitializeD3D12DebugInfoLogger(D3D12Renderer *rend
         return;
     }
 
-    ID3D12InfoQueue1_RegisterMessageCallback(
+    res = ID3D12InfoQueue1_RegisterMessageCallback(
         infoQueue,
         D3D12_INTERNAL_OnD3D12DebugInfoMsg,
         D3D12_MESSAGE_CALLBACK_FLAG_NONE,
         NULL,
-        NULL);
+        &callbackCookie);
+    if (SUCCEEDED(res)) {
+        renderer->InfoQueueMessageCallbackSupported = true;
+    }
 
     ID3D12InfoQueue1_Release(infoQueue);
+}
+
+static void D3D12_INTERNAL_DrainInfoQueueMessages(D3D12Renderer *renderer)
+{
+    ID3D12InfoQueue *infoQueue = renderer->debugInfoQueue;
+    UINT64 count, i;
+
+    if (renderer->InfoQueueMessageCallbackSupported || infoQueue == NULL) {
+        return;
+    }
+
+    count = ID3D12InfoQueue_GetNumStoredMessages(infoQueue);
+    if (count == 0) {
+        return;
+    }
+
+    for (i = 0; i < count; i += 1) {
+        SIZE_T size = 0;
+        ID3D12InfoQueue_GetMessage(infoQueue, i, NULL, &size);
+        D3D12_MESSAGE *message = (D3D12_MESSAGE *)SDL_malloc(size);
+        if (message && SUCCEEDED(ID3D12InfoQueue_GetMessage(infoQueue, i, message, &size))) {
+            D3D12_INTERNAL_OnD3D12DebugInfoMsg(
+                message->Category,
+                message->Severity,
+                message->ID,
+                message->pDescription,
+                NULL);
+        }
+        SDL_free(message);
+    }
+
+    ID3D12InfoQueue_ClearStoredMessages(infoQueue);
 }
 #endif
 
