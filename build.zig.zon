@@ -3,9 +3,9 @@
 
 .{
     .name = .sdl,
-    .version = "0.5.4+3.4.16",
+    .version = "0.6.0+3.4.18",
     .fingerprint = 0xec638ccbfafe3248,
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0",
     .dependencies = .{
         .sdl_linux_deps = .{
             .url = "git+https://github.com/castholm/SDL_linux_deps.git#86b2445cce38b014efeebcb0f3752aff623602fc",
